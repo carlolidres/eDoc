@@ -1,0 +1,55 @@
+workflow-app/data/*
+!workflow-app/data/.gitkeep
+workflow-app/data/attachments/
+workflow-app/config.json
+workflow-app/.env
+workflow-app/__pycache__/
+workflow-app/scripts/__pycache__/
+*.pyc
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Local environment and secrets
+.env
+.env.local
+.env.development.local
+.env.production.local
+.env.*.local
+.dev.vars
+
+# Keep safe examples
+!.env.example
+!.dev.vars.example
+
+# Cloudflare
+.wrangler/
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Editor and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Do not upload local reference projects
+reference/

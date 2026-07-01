@@ -1,0 +1,18 @@
+{
+  "name": "edoc-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev src/index.ts --config wrangler.toml",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "hono": "^4.8.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20240729.0",
+    "typescript": "^5.5.4",
+    "wrangler": "^3.72.0"
+  }
+}
