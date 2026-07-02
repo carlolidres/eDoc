@@ -3,8 +3,8 @@
 Last Updated: `2026-07-02`
 Version: `v13` (Phase 8 E2E verified)
 Branch: `master`
-Commit: `bd336e0` (+ Hasura relationship + E2E scripts uncommitted)
-Deployment: `DEPLOYED` — Worker `af39241e`; GitHub Pages live
+Commit: `e938c95`
+Deployment: `DEPLOYED` — Worker `60e76cef`; Pages workflow `28588820838` success
 
 ## Current Status
 
@@ -36,7 +36,7 @@ Phase 8 certificate issuance and authenticated UI walkthrough verified on produc
 
 - Acceptance criteria: `PARTIAL` — CERT/AUDIT baseline largely met; integrity hash and auditor role scope remain.
 - Instruction conflicts: `NONE`
-- Repository status: `DIRTY` — Hasura metadata + E2E scripts uncommitted
+- Repository status: `CLEAN` (except untracked `.cursor/`)
 - Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED`, `CERTIFICATE_E2E_PASSING`, `LIVE_UI_WALKTHROUGH_PASSING`
 - Last known working state: `npm run build`, `npm run worker:check`, `npm run lint`, `npm run test` pass.
 
@@ -85,9 +85,8 @@ Comments: Re-run with `python database/scripts/e2e_live_walkthrough.py --assigne
 
 ## Next Action
 
-1. Commit Hasura relationship fix and E2E/walkthrough scripts.
-2. Phase 8 remaining: auditor-role scoped reads, integrity hash on audit events.
-3. Phase 9 administration or Phase 7 field-placement wizard.
+1. Phase 8 remaining: auditor-role scoped reads, integrity hash on audit events.
+2. Phase 9 administration or Phase 7 field-placement wizard.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 
