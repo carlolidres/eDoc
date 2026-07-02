@@ -3,8 +3,8 @@
 Last Updated: `2026-07-02`
 Version: `v6`
 Branch: `master`
-Commit: `7c8cc9c`
-Deployment: `DEPLOYED` (frontend + Worker, 2026-07-02)
+Commit: `89c5456`
+Deployment: `DEPLOYED` (frontend GitHub Pages run `28574815381`, 2026-07-02)
 
 ## Current Status
 
@@ -27,6 +27,8 @@ Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tr
 
 ## Recently Completed
 
+- Committed `89c5456` — Hasura `x-hasura-role: user` header for authenticated GraphQL queries.
+- Deployed frontend via GitHub Pages CI (run `28574815381`).
 - Committed `7c8cc9c` — document creation wizard, Worker R2 upload, Hasura `document_versions` permissions script.
 - Deployed Worker `a4f1816e` with R2 binding `edoc-dev`; frontend via GitHub Pages CI (run `28573704291`).
 - Committed `f3b0dc6` — Phase 4/5 Nhost schema, Hasura GraphQL reads, database scripts.
@@ -61,7 +63,7 @@ Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tr
 | Hasura metadata | `PARTIAL` | User permissions applied; rerun for `document_versions` |
 | Build | `PASS` | Vite production build with wizard |
 | Worker typecheck | `PASS` | `npm run worker:check` |
-| Lint | `NOT_RUN` | Run before next commit |
+| Lint | `PASS` | CI run `28574815381` |
 | E2E wizard upload | `NOT_RUN` | Blocked on profile + R2 |
 
 ## SQLite Sync
