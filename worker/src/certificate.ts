@@ -391,8 +391,8 @@ export async function verifyCertificate(
       id: string
       verification_code: string
       issued_at: string
+      version_id: string
       document: { title: string; reference_number: string | null } | null
-      version: { original_sha256: string | null } | null
       route_id: string
       document_id: string
     }>
@@ -403,10 +403,10 @@ export async function verifyCertificate(
         id
         verification_code
         issued_at
+        version_id
         route_id
         document_id
         document { title reference_number }
-        version { original_sha256 }
       }
     }`,
     { certificateId },
@@ -418,6 +418,7 @@ export async function verifyCertificate(
   }
 
   const evidence = await hasuraAdminRequest<{
+    document_versions_by_pk: { original_sha256: string | null } | null
     document_files: Array<{ sha256: string | null }>
     document_routes_by_pk: {
       route_steps: Array<{
@@ -430,7 +431,10 @@ export async function verifyCertificate(
     } | null
   }>(
     env,
-    `query CertificateEvidence($documentId: uuid!, $routeId: uuid!) {
+    `query CertificateEvidence($documentId: uuid!, $routeId: uuid!, $versionId: uuid!) {
+      document_versions_by_pk(id: $versionId) {
+        original_sha256
+      }
       document_files(
         where: { document_id: { _eq: $documentId }, file_role: { _eq: "signed" } }
         order_by: { created_at: desc }
@@ -450,7 +454,11 @@ export async function verifyCertificate(
         }
       }
     }`,
-    { documentId: certificate.document_id, routeId: certificate.route_id },
+    {
+      documentId: certificate.document_id,
+      routeId: certificate.route_id,
+      versionId: certificate.version_id,
+    },
   )
 
   const participants: ParticipantRow[] = []
@@ -473,7 +481,7 @@ export async function verifyCertificate(
     issuedAt: certificate.issued_at,
     documentTitle: certificate.document?.title,
     referenceNumber: certificate.document?.reference_number,
-    documentHash: certificate.version?.original_sha256 ?? null,
+    documentHash: evidence.document_versions_by_pk?.original_sha256 ?? null,
     signedFileHash: evidence.document_files[0]?.sha256 ?? null,
     participants,
   }

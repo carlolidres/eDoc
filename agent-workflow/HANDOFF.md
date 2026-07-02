@@ -1,14 +1,14 @@
 # Current Handoff
 
 Last Updated: `2026-07-02`
-Version: `v13` (Phase 8 in progress)
+Version: `v13` (Phase 8 deployed)
 Branch: `master`
-Commit: `ecc826a` (pushed; Phase 8 changes uncommitted)
-Deployment: `PENDING` — Worker/Pages redeploy needed for Phase 8
+Commit: `ec164f6` (+ verification query fix pending commit)
+Deployment: `DEPLOYED` — Worker `af39241e`; GitHub Pages workflow `28586057558` success
 
 ## Current Status
 
-Phase 7 (`ecc826a`) pushed and synced with `origin/master`. GitHub Pages login shell verified on production URL. Phase 8 implementation added locally: completion certificates, verification API, audit trail UI, and reports.
+Phase 8 (`v13`) committed, Worker redeployed, and GitHub Pages updated. Completion certificates, verification API, audit trail UI, and reports are live. Verification endpoint fixed post-deploy (Hasura `version` relationship query).
 
 ## Deployment URLs
 
@@ -22,22 +22,23 @@ Phase 7 (`ecc826a`) pushed and synced with `origin/master`. GitHub Pages login s
 ## Active Work
 
 - Objective: `Phase 8 — completion certificates and audit trail UI.`
-- Progress: `Worker certificate + verification endpoints; Hasura audit/signature/certificate reads applied; UI audit panel, reports, verify page.`
-- Remaining: `Commit/deploy v13; authenticated Pages walkthrough (inbox → workspace → audit/certificate); live certificate E2E.`
+- Progress: `Deployed v13; verification API live; verify page renders on Pages.`
+- Remaining: `Authenticated Pages walkthrough (inbox → workspace → audit/certificate); live certificate issuance E2E on completed route.`
 
 ## Recently Completed
 
-- `git push origin master` — already up-to-date at `ecc826a`.
-- Pages UI walkthrough (unauthenticated): login page renders at `#/login`; protected routes redirect correctly.
-- Hasura metadata script applied Phase 8 select permissions for `audit_events`, `signature_events`, `completion_certificates`, `route_step_actions`.
-- Phase 8 code: `worker/src/certificate.ts`, audit trail panel, `VerifyCertificatePage`, reports CSV export.
+- `v13` commit `ec164f6` — Phase 8 certificates, audit trail, verify page, reports CSV.
+- Worker deploy `af39241e` — certificate issuance + verification endpoints.
+- GitHub Pages deploy `28586057558` — success.
+- Verification endpoint fix — query `version_id` separately instead of missing Hasura relationship.
+- Public verify page smoke test — `#/verify/:certificateId` renders without auth.
 
 ## Reliability Snapshot
 
 - Acceptance criteria: `PARTIAL` — CERT/AUDIT baseline partially met; integrity hash and auditor role scope remain.
 - Instruction conflicts: `NONE`
-- Repository status: `DIRTY` — Phase 8 source changes uncommitted
-- Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED`, `E2E_SIGN_PASSING` (Phase 7)
+- Repository status: `DIRTY` — verification query fix uncommitted
+- Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED`, `WORKER_DEPLOYED`, `PAGES_DEPLOYED`
 - Last known working state: `npm run build`, `npm run worker:check`, `npm run lint`, `npm run test` pass.
 
 ## Known Issues
@@ -52,34 +53,35 @@ Phase 7 (`ecc826a`) pushed and synced with `origin/master`. GitHub Pages login s
 
 | Check | Status | Result |
 |---|---|---|
-| Git push master (`ecc826a`) | `PASS` | `Everything up-to-date` |
-| Pages login shell (unauthenticated) | `PASS` | https://carlolidres.github.io/eDoc/#/login renders sign-in form |
-| Hasura metadata (Phase 8 reads) | `PASS` | `setup_hasura_metadata.py` exit 0 |
+| Git push master (`ec164f6`) | `PASS` | `ecc826a..ec164f6 master -> master` |
+| Worker deploy (Phase 8) | `PASS` | `edoc-worker` version `af39241e` |
+| GitHub Pages deploy (Phase 8) | `PASS` | workflow `28586057558` success |
+| Worker health `/api/health` | `PASS` | `{ ok: true }` |
+| Verification API (invalid cert) | `PASS` | `{ valid: false }` for unknown id |
+| Public verify page (Pages) | `PASS` | `#/verify/:certificateId` renders form |
 | Build | `PASS` | Vite production build |
 | Unit tests | `PASS` | `npm run test` (13 tests) |
 | Worker type-check | `PASS` | `npm run worker:check` |
 | Lint | `PASS` | `npm run lint` (2 pre-existing warnings) |
-| Live sign E2E (Phase 7) | `PASS` | prior run against production |
-| Worker deploy (Phase 8) | `NOT_RUN` | Redeploy `edoc-worker` after commit |
-| GitHub Pages deploy (Phase 8) | `NOT_RUN` | Push commit to trigger `pages.yml` |
 | Authenticated UI walkthrough | `NOT_RUN` | Requires owner login on Pages |
+| Live certificate issuance E2E | `NOT_RUN` | Requires completed route in production |
 
 ## Manual UI Verification (2026-07-02)
 
 ```text
-Route: https://carlolidres.github.io/eDoc/#/inbox → redirected to #/login
+Route: https://carlolidres.github.io/eDoc/#/verify/00000000-0000-0000-0000-000000000001
 Tested by: Agent (browser automation)
-Original issue: Post-v12 Pages smoke check
+Original issue: Phase 8 public verify page smoke check
 
 Verification steps:
-1. Open Pages inbox URL
-2. Confirm redirect to login when unauthenticated
-3. Confirm login form, branding, and forgot-password link render
+1. Open verify URL with certificate id
+2. Confirm page renders without login redirect
+3. Confirm certificate id field, code input, and verify button present
 
-Result: PARTIALLY_PASSED
+Result: PASSED
 Console: NO_NEW_ERRORS observed in snapshot
-Network: N/A (no authenticated session)
-Comments: Full inbox/signing walkthrough requires owner credentials.
+Network: N/A (no form submission)
+Comments: Full certificate E2E requires a completed route with issued certificate.
 ```
 
 ## SQLite Sync
@@ -89,10 +91,10 @@ Comments: Full inbox/signing walkthrough requires owner credentials.
 
 ## Next Action
 
-1. Commit Phase 8 changes as `v13`.
-2. Deploy Worker (`wrangler deploy`) and push to trigger GitHub Pages.
-3. Sign in on Pages and walk through inbox → signing workspace → audit trail / certificate verify link.
-4. Run certificate issuance E2E after a completed route.
+1. Commit verification query fix.
+2. Sign in on Pages and walk through inbox → signing workspace → audit trail / certificate verify link.
+3. Run certificate issuance E2E after a completed route.
+4. Phase 8 remaining: auditor-role scoped reads, integrity hash on audit events.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 
