@@ -39,8 +39,38 @@ export interface DocumentListItem {
   priority: 'low' | 'normal' | 'high' | 'urgent'
 }
 
+export type AdvanceRouteAction = 'review' | 'approve' | 'acknowledge' | 'reject' | 'return'
+
+export function advanceActionForRouteAction(action: RouteAction): AdvanceRouteAction | null {
+  if (action === 'review' || action === 'approve' || action === 'acknowledge') return action
+  return null
+}
+
+export function routeActionLabel(action: RouteAction): string {
+  const labels: Record<RouteAction, string> = {
+    review: 'Review',
+    approve: 'Approve',
+    sign: 'Sign',
+    acknowledge: 'Acknowledge',
+  }
+  return labels[action]
+}
+
+export function completeActionLabel(action: RouteAction): string {
+  const labels: Record<RouteAction, string> = {
+    review: 'Mark reviewed',
+    approve: 'Approve',
+    acknowledge: 'Acknowledge',
+    sign: 'Open to sign',
+  }
+  return labels[action]
+}
+
 export interface InboxTask {
   id: string
+  routeId: string
+  stepId: string
+  documentId: string
   documentTitle: string
   action: RouteAction
   dueDate: string

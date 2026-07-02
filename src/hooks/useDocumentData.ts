@@ -2,9 +2,11 @@ import { useGraphQLQuery } from './useGraphQLQuery'
 import {
   DASHBOARD_METRICS,
   DOCUMENTS_LIST,
+  INBOX_ASSIGNMENT,
   INBOX_TASKS,
   type DashboardMetricsResponse,
   type DocumentsListResponse,
+  type InboxAssignmentResponse,
   type InboxTasksResponse,
 } from '../graphql/queries'
 import type { DashboardMetrics, DocumentListItem, DocumentStatus, InboxTask, RouteAction } from '../types/domain'
@@ -61,19 +63,39 @@ export function useDashboardMetricsData() {
   return { ...query, metrics }
 }
 
+function mapInboxAssigneeRow(row: InboxTasksResponse['route_step_assignees'][number]): InboxTask | null {
+  const route = row.step?.route
+  if (!route) return null
+  return {
+    id: row.id,
+    routeId: route.id,
+    stepId: row.step?.id ?? '',
+    documentId: route.document_id,
+    documentTitle: route.document?.title ?? `Document ${route.document_id}`,
+    action: (row.step?.action ?? 'review') as RouteAction,
+    dueDate: formatDate(row.step?.due_at),
+    assignedBy: '—',
+    instructions: route.document?.reference_number ? `Ref: ${route.document.reference_number}` : '',
+  }
+}
+
 export function useInboxTasksData() {
   const query = useGraphQLQuery<InboxTasksResponse>('inbox-tasks', INBOX_TASKS)
   const tasks: InboxTask[] = (query.data?.route_step_assignees ?? [])
-    .filter((row) => row.step?.route)
-    .map((row) => ({
-      id: row.id,
-      documentTitle: row.step?.route?.document?.title ?? `Document ${row.step?.route?.document_id ?? ''}`,
-      action: (row.step?.action ?? 'review') as RouteAction,
-      dueDate: formatDate(row.step?.due_at),
-      assignedBy: '—',
-      instructions: row.step?.route?.document?.reference_number
-        ? `Ref: ${row.step.route.document.reference_number}`
-        : '',
-    }))
+    .map(mapInboxAssigneeRow)
+    .filter((task): task is InboxTask => task !== null)
   return { ...query, tasks }
+}
+
+export function useInboxAssignment(assignmentId: string | undefined) {
+  const query = useGraphQLQuery<InboxAssignmentResponse>(
+    'inbox-assignment',
+    INBOX_ASSIGNMENT,
+    assignmentId ? { id: assignmentId } : undefined,
+    { enabled: Boolean(assignmentId) },
+  )
+  const task = query.data?.route_step_assignees_by_pk
+    ? mapInboxAssigneeRow(query.data.route_step_assignees_by_pk)
+    : null
+  return { ...query, task }
 }

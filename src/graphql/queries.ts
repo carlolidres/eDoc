@@ -92,6 +92,29 @@ export const INBOX_TASKS = `
   }
 `
 
+export const INBOX_ASSIGNMENT = `
+  query InboxAssignment($id: uuid!) {
+    route_step_assignees_by_pk(id: $id) {
+      id
+      status
+      step {
+        id
+        action
+        due_at
+        route {
+          id
+          document_id
+          document {
+            title
+            reference_number
+            status
+          }
+        }
+      }
+    }
+  }
+`
+
 export type CurrentProfileResponse = {
   profiles: Array<{
     id: string
@@ -132,19 +155,25 @@ export type DashboardMetricsResponse = {
   awaitingMyAction: { aggregate: { count: number } | null }
 }
 
-export type InboxTasksResponse = {
-  route_step_assignees: Array<{
+type InboxAssigneeRow = {
+  id: string
+  status: string
+  step: {
     id: string
-    status: string
-    step: {
+    action: string
+    due_at: string | null
+    route: {
       id: string
-      action: string
-      due_at: string | null
-      route: {
-        id: string
-        document_id: string
-        document: { title: string; reference_number: string | null } | null
-      } | null
+      document_id: string
+      document: { title: string; reference_number: string | null; status?: string } | null
     } | null
-  }>
+  } | null
+}
+
+export type InboxTasksResponse = {
+  route_step_assignees: InboxAssigneeRow[]
+}
+
+export type InboxAssignmentResponse = {
+  route_step_assignees_by_pk: InboxAssigneeRow | null
 }
