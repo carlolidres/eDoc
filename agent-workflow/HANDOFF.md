@@ -1,14 +1,14 @@
 # Current Handoff
 
 Last Updated: `2026-07-02`
-Version: `v7`
+Version: `v10`
 Branch: `master`
-Commit: `uncommitted`
-Deployment: `NOT_DEPLOYED` (local changes pending commit + Pages CI)
+Commit: `464eac4`
+Deployment: `DEPLOYED` — GitHub Pages CI triggered; Worker `092ec360` live
 
 ## Current Status
 
-Baseline approved. Phase 4 Nhost migration applied (48 tables). Phase 5 wizard steps 0–2 complete: metadata, R2 upload, and recipients/routing (sequential draft route). Hasura owner-scoped routing insert permissions applied on Nhost dev.
+Baseline approved. Phase 5 wizard routing complete. Phase 6 route activation live: Worker `POST /api/routes/:routeId/start` activates draft routes, sets document `in_routing`, activates first sequential step assignees, and records `route.started` audit event.
 
 ## Deployment URLs
 
@@ -21,56 +21,55 @@ Baseline approved. Phase 4 Nhost migration applied (48 tables). Phase 5 wizard s
 
 ## Active Work
 
-- Objective: `Phase 5/6 — wizard routing step, route activation, dashboard metrics.`
-- Progress: `Wizard step 3 (recipients & routing) implemented; Hasura routing permissions re-applied.`
-- Remaining: `Deploy frontend; E2E routing smoke with owner credentials; Phase 6 Worker route activation; dashboard due-soon/overdue metrics.`
+- Objective: `Phase 6+ — route advancement, dashboard due-soon/overdue metrics, signing workspace.`
+- Progress: `Route start endpoint deployed; wizard auto-sends route; E2E 9-step smoke PASS.`
+- Remaining: `Worker route advance; dashboard date-filtered aggregates; PDF field placement.`
 
 ## Recently Completed
 
-- Wizard step 3: sequential route builder in `CreateDocumentPage` (action, assignee, optional due date).
-- GraphQL: `ORG_PROFILES`, nested `CREATE_DOCUMENT_ROUTE`, `UPDATE_DOCUMENT_STATUS` → `ready_for_routing`.
-- Hasura: org peer `profiles` select; owner insert/select on `document_routes`, `route_steps`, `route_step_assignees`.
-- Extended `e2e_wizard_upload.py` with route create + status update steps (8-step flow).
-- Committed `89c5456` — Hasura `x-hasura-role: user` header for authenticated GraphQL queries.
-- E2E API smoke PASS (prior): profile → document create → Worker R2 upload → complete-upload.
+- `464eac4` — Phase 6: `POST /api/routes/:routeId/start`, wizard send, inbox query filters active steps only.
+- `21dd3da` — Phase 5: wizard routing step, Hasura routing permissions, E2E smoke script.
+- E2E API smoke PASS: sign-in → profile → document → R2 upload → draft route → `ready_for_routing` → route start → 1 inbox assignee.
+- Worker deployed with R2 binding (`edoc-dev`).
 
 ## Reliability Snapshot
 
-- Acceptance criteria: `PARTIAL` — routing UI + permissions implemented; full E2E routing smoke not run (needs owner sign-in).
+- Acceptance criteria: `PARTIAL` — route activation meets ROUTE-AC-006; advance/signing not yet implemented.
 - Instruction conflicts: `NONE`
-- Repository status: `DIRTY` — wizard routing step changes uncommitted.
-- Build/database/runtime status: `BUILD_PASSING`
-- Last known working state: `npm run build`, `npm run lint`, `npm run worker:check` pass locally.
+- Repository status: `CLEAN`
+- Build/database/runtime status: `BUILD_PASSING`, `E2E_PASSING`
+- Last known working state: `npm run build`, `npm run worker:check`, `e2e_wizard_upload.py` pass.
 
 ## Known Issues
 
 | Severity | Issue | Impact | Next action |
 |---|---|---|---|
-| Low | Route stays `draft` after wizard save | Inbox empty until Phase 6 activation | Worker `start-route` endpoint |
 | Low | Only synced profiles appear as assignees | Multi-user routing needs more `sync_nhost_profile.py` runs | Sync additional Nhost users |
 | Low | Due soon/overdue metrics not computed | Dashboard shows 0 for those cards | Add date-filtered aggregates |
+| Low | `advance` endpoint still 501 | Steps cannot complete yet | Phase 6 continuation |
 | Low | Nhost production redirect URLs not confirmed | Reset/verify may fail on Pages | Owner adds URLs per `SETUP.md` |
 
 ## Verification
 
 | Check | Status | Result |
 |---|---|---|
-| Hasura metadata (routing) | `PASS` | `setup_hasura_metadata.py` applied on Nhost dev |
-| Build | `PASS` | Vite production build with routing wizard |
+| Hasura metadata (routing) | `PASS` | Owner insert/select on routes, steps, assignees |
+| Build | `PASS` | Vite production build with route send |
 | Worker typecheck | `PASS` | `npm run worker:check` |
-| Lint | `PASS` | 0 errors (2 pre-existing warnings) |
-| E2E wizard + routing | `NOT_RUN` | Requires owner `--email` + `E2E_PASSWORD` in `.dev.vars` |
+| Worker deploy | `PASS` | `edoc-worker` version `092ec360` |
+| E2E wizard + routing + start | `PASS` | `e2e_wizard_upload.py --email carlolidres@gmail.com` |
+| GitHub Pages deploy | `PENDING` | CI for commit `464eac4` |
 
 ## SQLite Sync
 
 - Nhost migration status: `APPLIED` — `0001_initial.sql`, `0002_seed_dev.sql`
-- Hasura permissions: `APPLIED` (dev, `user` role, routing insert + org profiles)
+- Hasura permissions: `APPLIED` (dev, `user` role, routing + org profiles)
 
 ## Next Action
 
-1. Commit and deploy frontend so production `#/documents/new` includes routing step.
-2. Run `python database/scripts/e2e_wizard_upload.py --email <owner>` to verify full 8-step API flow.
-3. Phase 6: Worker route activation so draft routes populate inbox.
+1. Confirm GitHub Pages CI green for `464eac4`.
+2. Manual UI check: create document → routing → verify inbox shows active task.
+3. Implement `POST /api/routes/:routeId/advance` for step completion.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 
