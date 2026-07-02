@@ -3,6 +3,6 @@ main = "src/index.ts"
 compatibility_date = "2024-08-15"
 
 # R2 binding — uncomment after enabling R2 in Cloudflare Dashboard and creating edoc-dev bucket
-# [[r2_buckets]]
-# binding = "EDOC_R2"
-# bucket_name = "edoc-dev"
+[[r2_buckets]]
+binding = "EDOC_R2"
+bucket_name = "edoc-dev"
