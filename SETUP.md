@@ -23,7 +23,10 @@ Only public frontend values belong in `.env`. Never commit `.env` or `.dev.vars`
 2. In Nhost dashboard → **Authentication** → **Settings**, set allowed redirect URLs for local dev:
    - `http://127.0.0.1:5173/#/change-password`
    - `http://127.0.0.1:5173/#/verify-email`
-   - Add production URLs when deploying to GitHub Pages.
+   - Add production URLs when deploying to GitHub Pages:
+     - `https://carlolidres.github.io/eDoc/#/login`
+     - `https://carlolidres.github.io/eDoc/#/change-password`
+     - `https://carlolidres.github.io/eDoc/#/verify-email`
 3. Map values into `.env`:
 
 | Variable | Source |
