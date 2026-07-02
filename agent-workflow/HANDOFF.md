@@ -1,14 +1,14 @@
 # Current Handoff
 
 Last Updated: `2026-07-02`
-Version: `v11`
+Version: `v13` (Phase 8 in progress)
 Branch: `master`
-Commit: `3666ac1`
-Deployment: `DEPLOYED` — Pages CI success; Worker `0cd9cac4`
+Commit: `ecc826a` (pushed; Phase 8 changes uncommitted)
+Deployment: `PENDING` — Worker/Pages redeploy needed for Phase 8
 
 ## Current Status
 
-Phase 7 PDF preview, PDF.js viewer, and sign-step completion with re-authentication implemented locally. Signing workspace renders authorized PDFs and completes sign assignments through the Worker sign endpoint.
+Phase 7 (`ecc826a`) pushed and synced with `origin/master`. GitHub Pages login shell verified on production URL. Phase 8 implementation added locally: completion certificates, verification API, audit trail UI, and reports.
 
 ## Deployment URLs
 
@@ -22,55 +22,77 @@ Phase 7 PDF preview, PDF.js viewer, and sign-step completion with re-authenticat
 ## Active Work
 
 - Objective: `Phase 8 — completion certificates and audit trail UI.`
-- Progress: `Phase 7 PDF preview, PDF.js viewer, and sign-step completion with re-authentication implemented.`
-- Remaining: `Deploy Worker signing endpoints; apply Hasura Phase 7 permissions; live sign-step E2E with R2 PDF.`
+- Progress: `Worker certificate + verification endpoints; Hasura audit/signature/certificate reads applied; UI audit panel, reports, verify page.`
+- Remaining: `Commit/deploy v13; authenticated Pages walkthrough (inbox → workspace → audit/certificate); live certificate E2E.`
 
 ## Recently Completed
 
-- Worker `GET /api/files/:fileId/preview-url` and `preview-content` with assignee/owner authorization and access logging.
-- Worker `POST /api/documents/:documentId/sign` — password re-auth, version hash check, pdf-lib signature apply, signed PDF in R2, signature events, route advance.
-- Signing workspace: lazy PDF.js viewer (zoom, pages, thumbnails), sign dialog with consent and re-authentication.
-- Hasura metadata script extended for `document_files`, `signature_fields`, assignee `document_versions` read, and signing relationships.
+- `git push origin master` — already up-to-date at `ecc826a`.
+- Pages UI walkthrough (unauthenticated): login page renders at `#/login`; protected routes redirect correctly.
+- Hasura metadata script applied Phase 8 select permissions for `audit_events`, `signature_events`, `completion_certificates`, `route_step_actions`.
+- Phase 8 code: `worker/src/certificate.ts`, audit trail panel, `VerifyCertificatePage`, reports CSV export.
 
 ## Reliability Snapshot
 
-- Acceptance criteria: `PARTIAL` — ROUTE-AC-006/009 met for sequential single-step review; parallel/mixed/reject flows need broader tests.
+- Acceptance criteria: `PARTIAL` — CERT/AUDIT baseline partially met; integrity hash and auditor role scope remain.
 - Instruction conflicts: `NONE`
-- Repository status: `CLEAN` — synced with origin
-- Build/database/runtime status: `BUILD_PASSING`, `E2E_PASSING`
+- Repository status: `DIRTY` — Phase 8 source changes uncommitted
+- Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED`, `E2E_SIGN_PASSING` (Phase 7)
 - Last known working state: `npm run build`, `npm run worker:check`, `npm run lint`, `npm run test` pass.
 
 ## Known Issues
 
 | Severity | Issue | Impact | Next action |
 |---|---|---|---|
+| Low | Authenticated Pages walkthrough blocked without test credentials in agent env | Could not verify inbox/workspace on live Pages | Owner signs in and confirms inbox + signing workspace |
 | Low | Only synced profiles appear as assignees | Multi-user routing needs more `sync_nhost_profile.py` runs | Sync additional Nhost users |
-| Low | Worker sign endpoint not yet deployed | Production sign steps still blocked until redeploy | Deploy Worker after review |
-| Low | Hasura Phase 7 permissions need re-apply | Assignees may not see PDF metadata until metadata script runs | Run `setup_hasura_metadata.py` |
 | Low | Nhost production redirect URLs not confirmed | Reset/verify may fail on Pages | Owner adds URLs per `SETUP.md` |
 
 ## Verification
 
 | Check | Status | Result |
 |---|---|---|
-| Hasura metadata (routing) | `PASS` | Owner insert/select on routes, steps, assignees |
-| Build | `PASS` | Vite production build with lazy PDF.js chunk |
-| Unit tests | `PASS` | `npm run test` (11 tests) |
+| Git push master (`ecc826a`) | `PASS` | `Everything up-to-date` |
+| Pages login shell (unauthenticated) | `PASS` | https://carlolidres.github.io/eDoc/#/login renders sign-in form |
+| Hasura metadata (Phase 8 reads) | `PASS` | `setup_hasura_metadata.py` exit 0 |
+| Build | `PASS` | Vite production build |
+| Unit tests | `PASS` | `npm run test` (13 tests) |
 | Worker type-check | `PASS` | `npm run worker:check` |
-| Lint | `PASS` | `npm run lint` |
-| GitHub Pages deploy | `NOT_RUN` | Pending commit/deploy of Phase 7 frontend |
-| Worker deploy | `NOT_RUN` | Pending deploy of Phase 7 signing/preview endpoints |
+| Lint | `PASS` | `npm run lint` (2 pre-existing warnings) |
+| Live sign E2E (Phase 7) | `PASS` | prior run against production |
+| Worker deploy (Phase 8) | `NOT_RUN` | Redeploy `edoc-worker` after commit |
+| GitHub Pages deploy (Phase 8) | `NOT_RUN` | Push commit to trigger `pages.yml` |
+| Authenticated UI walkthrough | `NOT_RUN` | Requires owner login on Pages |
+
+## Manual UI Verification (2026-07-02)
+
+```text
+Route: https://carlolidres.github.io/eDoc/#/inbox → redirected to #/login
+Tested by: Agent (browser automation)
+Original issue: Post-v12 Pages smoke check
+
+Verification steps:
+1. Open Pages inbox URL
+2. Confirm redirect to login when unauthenticated
+3. Confirm login form, branding, and forgot-password link render
+
+Result: PARTIALLY_PASSED
+Console: NO_NEW_ERRORS observed in snapshot
+Network: N/A (no authenticated session)
+Comments: Full inbox/signing walkthrough requires owner credentials.
+```
 
 ## SQLite Sync
 
 - Nhost migration status: `APPLIED` — `0001_initial.sql`, `0002_seed_dev.sql`
-- Hasura permissions: `PENDING_REAPPLY` — Phase 7 `document_files` / `signature_fields` / assignee version reads in metadata script
+- Hasura permissions: `APPLIED` — Phase 7 + Phase 8 assignee/audit reads
 
 ## Next Action
 
-1. Deploy Worker with Phase 7 signing and preview endpoints.
-2. Re-run `database/scripts/setup_hasura_metadata.py` for Phase 7 read permissions.
-3. Begin Phase 8: completion certificates and audit trail UI.
+1. Commit Phase 8 changes as `v13`.
+2. Deploy Worker (`wrangler deploy`) and push to trigger GitHub Pages.
+3. Sign in on Pages and walk through inbox → signing workspace → audit trail / certificate verify link.
+4. Run certificate issuance E2E after a completed route.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 

@@ -295,9 +295,54 @@ def create_relationships(endpoint: str, admin_secret: str) -> None:
             "type": "pg_create_object_relationship",
             "args": {
                 "source": "default",
-                "table": {"schema": "public", "name": "profiles"},
-                "name": "organization",
-                "using": {"foreign_key_constraint_on": "organization_id"},
+                "table": {"schema": "public", "name": "audit_events"},
+                "name": "user",
+                "using": {"foreign_key_constraint_on": "user_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "audit_events"},
+                "name": "document",
+                "using": {"foreign_key_constraint_on": "document_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_events"},
+                "name": "signer",
+                "using": {"foreign_key_constraint_on": "signer_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_events"},
+                "name": "document",
+                "using": {"foreign_key_constraint_on": "document_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "completion_certificates"},
+                "name": "document",
+                "using": {"foreign_key_constraint_on": "document_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "route_step_actions"},
+                "name": "assignee",
+                "using": {"foreign_key_constraint_on": "assignee_id"},
             },
         },
         {
@@ -680,6 +725,94 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                 "permission": {
                     "columns": ["id", "document_id", "grantee_id", "permission_level"],
                     "filter": {"grantee_id": {"_eq": "X-Hasura-User-Id"}},
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "audit_events"},
+                "role": "user",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "event_type",
+                        "entity_type",
+                        "entity_id",
+                        "document_id",
+                        "version_id",
+                        "user_id",
+                        "previous_value",
+                        "new_value",
+                        "reason",
+                        "source",
+                        "request_id",
+                        "created_at",
+                    ],
+                    "filter": {"document": ASSIGNEE_DOCUMENT_FILTER},
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_events"},
+                "role": "user",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "document_id",
+                        "version_id",
+                        "assignee_id",
+                        "signer_id",
+                        "signature_meaning",
+                        "auth_method",
+                        "document_hash",
+                        "final_pdf_hash",
+                        "created_at",
+                    ],
+                    "filter": {"document": ASSIGNEE_DOCUMENT_FILTER},
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "completion_certificates"},
+                "role": "user",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "document_id",
+                        "version_id",
+                        "route_id",
+                        "certificate_key",
+                        "verification_code",
+                        "issued_at",
+                    ],
+                    "filter": {"document": ASSIGNEE_DOCUMENT_FILTER},
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "route_step_actions"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "step_id", "assignee_id", "action", "status", "comment", "created_at"],
+                    "filter": {
+                        "assignee": {
+                            "_or": [
+                                {"assignee_id": {"_eq": "X-Hasura-User-Id"}},
+                                {"step": OWNER_ROUTE_FILTER},
+                            ]
+                        }
+                    },
                 },
             },
         },

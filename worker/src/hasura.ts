@@ -497,6 +497,7 @@ export async function advanceDocumentRoute(
 
   const response = {
     routeId: input.routeId,
+    documentId: route.document_id,
     assigneeRowId: input.assigneeRowId,
     stepId: step.id,
     action: input.action,

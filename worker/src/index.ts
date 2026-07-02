@@ -12,6 +12,7 @@ import {
 } from './hasura'
 import { assertFileAccess, logFileAccess } from './files'
 import { signDocument } from './signing'
+import { issueCompletionCertificate, verifyCertificate } from './certificate'
 
 type Bindings = {
   EDOC_R2: R2Bucket
@@ -21,7 +22,7 @@ type Bindings = {
 }
 
 type AppContext = Context<{ Bindings: Bindings }>
-type ErrorStatus = 400 | 401 | 403 | 404 | 500
+type ErrorStatus = 400 | 401 | 403 | 404 | 429 | 500
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -70,6 +71,43 @@ const signDocumentSchema = z.object({
   signatureMeaning: z.string().min(1),
   typedSignature: z.string().min(1),
 })
+
+const certificateRequestSchema = z.object({
+  routeId: z.string().min(1),
+})
+
+const verificationAttempts = new Map<string, { count: number; resetAt: number }>()
+const VERIFICATION_RATE_LIMIT = 30
+const VERIFICATION_WINDOW_MS = 60_000
+
+function isVerificationRateLimited(ip: string) {
+  const now = Date.now()
+  const entry = verificationAttempts.get(ip)
+  if (!entry || entry.resetAt <= now) {
+    verificationAttempts.set(ip, { count: 1, resetAt: now + VERIFICATION_WINDOW_MS })
+    return false
+  }
+  entry.count += 1
+  return entry.count > VERIFICATION_RATE_LIMIT
+}
+
+async function maybeIssueCertificate(
+  c: AppContext,
+  input: { documentId: string; routeId: string; userId: string; routeCompleted: boolean },
+) {
+  if (!input.routeCompleted || !hasR2(c)) return null
+  try {
+    return await issueCompletionCertificate(c.env, c.env.EDOC_R2, {
+      documentId: input.documentId,
+      routeId: input.routeId,
+      userId: input.userId,
+      requestId: requestId(c),
+    })
+  } catch (error) {
+    console.error('Certificate issuance failed', error)
+    return null
+  }
+}
 
 const advanceRouteSchema = z
   .object({
@@ -329,7 +367,14 @@ app.post('/api/documents/:documentId/sign', async (c) => {
       ipAddress: c.req.header('cf-connecting-ip') ?? undefined,
       userAgent: c.req.header('user-agent') ?? undefined,
     })
-    return c.json({ requestId: requestId(c), ...result })
+    const routeCompleted = 'routeCompleted' in result && result.routeCompleted === true
+    const certificate = await maybeIssueCertificate(c, {
+      documentId,
+      routeId: parsed.data.routeId,
+      userId: claims.sub,
+      routeCompleted,
+    })
+    return c.json({ requestId: requestId(c), ...result, certificate })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Signing failed.'
     const status: ErrorStatus =
@@ -341,7 +386,35 @@ app.post('/api/documents/:documentId/sign', async (c) => {
 app.post('/api/documents/:documentId/certificate', async (c) => {
   const claims = await requireAuth(c)
   if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
-  return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
+  if (!hasR2(c)) return jsonError(c, 500, 'R2_NOT_CONFIGURED', 'R2 binding is not configured.')
+
+  const documentId = c.req.param('documentId')
+  if (!documentId) return jsonError(c, 400, 'VALIDATION_FAILED', 'Document id is required.')
+
+  const parsed = certificateRequestSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return jsonError(c, 400, 'VALIDATION_FAILED', 'Certificate request is invalid.')
+
+  try {
+    await assertDocumentOwner(c.env, documentId, claims.sub)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Authorization failed.'
+    const status: ErrorStatus = message.includes('not authorized') ? 403 : 400
+    return jsonError(c, status, 'FORBIDDEN', message)
+  }
+
+  try {
+    const certificate = await issueCompletionCertificate(c.env, c.env.EDOC_R2, {
+      documentId,
+      routeId: parsed.data.routeId,
+      userId: claims.sub,
+      requestId: requestId(c),
+    })
+    return c.json({ requestId: requestId(c), ...certificate })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Certificate issuance failed.'
+    const status: ErrorStatus = message.includes('not authorized') || message.includes('completed') ? 403 : 400
+    return jsonError(c, status, 'CERTIFICATE_FAILED', message)
+  }
 })
 
 app.post('/api/routes/:routeId/start', async (c) => {
@@ -388,7 +461,19 @@ app.post('/api/routes/:routeId/advance', async (c) => {
       idempotencyKey,
       requestId: requestId(c),
     })
-    return c.json({ requestId: requestId(c), ...result })
+    const routeCompleted = result.routeCompleted === true
+    const documentId =
+      routeCompleted && typeof result.documentId === 'string' ? result.documentId : null
+    const certificate =
+      routeCompleted && documentId
+        ? await maybeIssueCertificate(c, {
+            documentId,
+            routeId,
+            userId: claims.sub,
+            routeCompleted: true,
+          })
+        : null
+    return c.json({ requestId: requestId(c), ...result, certificate })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Route advance failed.'
     const status: ErrorStatus =
@@ -409,8 +494,25 @@ app.post('/api/notifications/send', async (c) => {
   return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
 })
 
-app.get('/api/verification/:certificateId', (c) => {
-  return c.json({ requestId: requestId(c), certificateId: c.req.param('certificateId'), status: 'not_configured' })
+app.get('/api/verification/:certificateId', async (c) => {
+  const ip = c.req.header('cf-connecting-ip') ?? 'unknown'
+  if (isVerificationRateLimited(ip)) {
+    return jsonError(c, 429, 'RATE_LIMITED', 'Too many verification attempts. Try again later.')
+  }
+
+  const certificateId = c.req.param('certificateId')
+  const code = c.req.query('code') ?? ''
+  if (!certificateId || !code.trim()) {
+    return jsonError(c, 400, 'VALIDATION_FAILED', 'Certificate id and verification code are required.')
+  }
+
+  try {
+    const result = await verifyCertificate(c.env, certificateId, code)
+    return c.json({ requestId: requestId(c), ...result })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Verification failed.'
+    return jsonError(c, 400, 'VERIFICATION_FAILED', message)
+  }
 })
 
 app.onError((error, c) => {

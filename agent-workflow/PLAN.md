@@ -101,10 +101,13 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 **Done:** Secure PDF preview via Worker, PDF.js viewer in signing workspace, sign endpoint with re-auth/consent/hash verify, signed PDF storage, signature events, route advance after sign.  
 **Remaining:** Field placement wizard UI (PDF-AC-001–003), drawn/uploaded signature modes, Worker deploy + live E2E.
 
-### Phase 8: Completion and audit — `NOT_STARTED`
+### Phase 8: Completion and audit — `IN_PROGRESS`
 
 - Completion certificates and verification endpoint
 - Append-only audit trail UI and reports
+
+**Done:** Worker certificate issuance on route completion, public verification endpoint with rate limiting, Hasura read permissions for audit/signature/certificate tables, audit trail panel in signing workspace, reports CSV export, public verify page.  
+**Remaining:** Deploy Worker + Pages for v13, live certificate E2E, auditor-role scoped reads, integrity hash on audit events.
 
 ### Phase 9: Administration — `NOT_STARTED`
 

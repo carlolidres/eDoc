@@ -5,6 +5,7 @@ import { ChangePasswordPage } from '../pages/ChangePasswordPage'
 import { LoginPage } from '../pages/LoginPage'
 import { ResetPasswordPage } from '../pages/ResetPasswordPage'
 import { VerifyEmailPage } from '../pages/VerifyEmailPage'
+import { VerifyCertificatePage } from '../pages/VerifyCertificatePage'
 import { DashboardPage } from '../pages/DashboardPage'
 import { DocumentsPage } from '../pages/DocumentsPage'
 import { InboxPage } from '../pages/InboxPage'
@@ -22,6 +23,7 @@ export function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/change-password" element={<ChangePasswordPage />} />
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/verify/:certificateId" element={<VerifyCertificatePage />} />
       <Route
         path="/"
         element={

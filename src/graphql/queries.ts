@@ -236,3 +236,94 @@ export type InboxTasksResponse = {
 export type InboxAssignmentResponse = {
   route_step_assignees_by_pk: InboxAssigneeRow | null
 }
+
+export const DOCUMENT_AUDIT_EVENTS = `
+  query DocumentAuditEvents($documentId: uuid!) {
+    audit_events(
+      where: { document_id: { _eq: $documentId } }
+      order_by: { created_at: desc }
+      limit: 100
+    ) {
+      id
+      event_type
+      entity_type
+      entity_id
+      user_id
+      reason
+      source
+      created_at
+      user {
+        display_name
+      }
+    }
+  }
+`
+
+export const RECENT_AUDIT_EVENTS = `
+  query RecentAuditEvents {
+    audit_events(order_by: { created_at: desc }, limit: 50) {
+      id
+      event_type
+      document_id
+      source
+      created_at
+      user {
+        display_name
+      }
+      document {
+        title
+        reference_number
+      }
+    }
+  }
+`
+
+export const DOCUMENT_CERTIFICATE = `
+  query DocumentCertificate($documentId: uuid!) {
+    completion_certificates(
+      where: { document_id: { _eq: $documentId } }
+      order_by: { issued_at: desc }
+      limit: 1
+    ) {
+      id
+      verification_code
+      issued_at
+      route_id
+    }
+  }
+`
+
+export type DocumentAuditEventsResponse = {
+  audit_events: Array<{
+    id: string
+    event_type: string
+    entity_type: string
+    entity_id: string | null
+    user_id: string | null
+    reason: string | null
+    source: string
+    created_at: string
+    user: { display_name: string } | null
+  }>
+}
+
+export type RecentAuditEventsResponse = {
+  audit_events: Array<{
+    id: string
+    event_type: string
+    document_id: string | null
+    source: string
+    created_at: string
+    user: { display_name: string } | null
+    document: { title: string; reference_number: string | null } | null
+  }>
+}
+
+export type DocumentCertificateResponse = {
+  completion_certificates: Array<{
+    id: string
+    verification_code: string
+    issued_at: string
+    route_id: string
+  }>
+}

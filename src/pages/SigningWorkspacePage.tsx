@@ -1,9 +1,11 @@
 import { lazy, Suspense, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { AuditTrailPanel } from '../components/audit/AuditTrailPanel'
 import { SignDialog, type SignDialogValues } from '../components/signing/SignDialog'
 import { EmptyState } from '../components/ui/EmptyState'
 import { useAuth } from '../features/auth/AuthProvider'
 import { useInboxAssignment } from '../hooks/useDocumentData'
+import { useDocumentCertificate } from '../hooks/useDocumentAudit'
 import { useFilePreview } from '../hooks/useFilePreview'
 import { useRouteAdvance } from '../hooks/useRouteAdvance'
 import { useSignDocument } from '../hooks/useSignDocument'
@@ -21,6 +23,7 @@ export function SigningWorkspacePage() {
   const { user, accessToken } = useAuth()
   const { task, isLoading, isError, error } = useInboxAssignment(assignmentId)
   const preview = useFilePreview(task?.previewFileId ?? undefined)
+  const { certificate } = useDocumentCertificate(task?.documentId)
   const advanceRoute = useRouteAdvance()
   const signDocument = useSignDocument()
   const [actionError, setActionError] = useState<string | null>(null)
@@ -150,6 +153,19 @@ export function SigningWorkspacePage() {
             </button>
           ) : null}
         </div>
+        <div className="workspace-audit">
+          <span className="eyebrow">Audit trail</span>
+          <AuditTrailPanel documentId={task.documentId} />
+        </div>
+        {certificate ? (
+          <div className="certificate-card">
+            <span className="eyebrow">Completion certificate</span>
+            <p>Issued {new Date(certificate.issued_at).toLocaleString()}</p>
+            <Link className="button secondary" to={`/verify/${certificate.id}?code=${certificate.verification_code}`}>
+              Verify certificate
+            </Link>
+          </div>
+        ) : null}
       </aside>
       <section className="panel pdf-panel">
         {!task.previewFileId ? (
