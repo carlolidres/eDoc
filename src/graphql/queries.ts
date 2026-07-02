@@ -37,7 +37,7 @@ export const DOCUMENTS_LIST = `
 `
 
 export const DASHBOARD_METRICS = `
-  query DashboardMetrics {
+  query DashboardMetrics($now: timestamptz!, $dueSoonCutoff: timestamptz!) {
     myDrafts: documents_aggregate(where: { status: { _eq: "draft" } }) {
       aggregate { count }
     }
@@ -57,6 +57,28 @@ export const DASHBOARD_METRICS = `
       where: {
         status: { _eq: "active" }
         step: { status: { _eq: "active" } }
+      }
+    ) {
+      aggregate { count }
+    }
+    dueSoon: route_step_assignees_aggregate(
+      where: {
+        status: { _eq: "active" }
+        step: {
+          status: { _eq: "active" }
+          due_at: { _is_null: false, _gte: $now, _lte: $dueSoonCutoff }
+        }
+      }
+    ) {
+      aggregate { count }
+    }
+    overdue: route_step_assignees_aggregate(
+      where: {
+        status: { _eq: "active" }
+        step: {
+          status: { _eq: "active" }
+          due_at: { _is_null: false, _lt: $now }
+        }
       }
     ) {
       aggregate { count }
@@ -104,12 +126,31 @@ export const INBOX_ASSIGNMENT = `
         route {
           id
           document_id
+          version_id
           document {
             title
             reference_number
             status
           }
+          version {
+            id
+            original_sha256
+            document_files(where: { file_role: { _eq: "original" } }, limit: 1) {
+              id
+              file_name
+            }
+          }
         }
+      }
+      signature_fields {
+        id
+        field_type
+        page_number
+        x
+        y
+        width
+        height
+        required
       }
     }
   }
@@ -153,11 +194,23 @@ export type DashboardMetricsResponse = {
   rejected: { aggregate: { count: number } | null }
   completed: { aggregate: { count: number } | null }
   awaitingMyAction: { aggregate: { count: number } | null }
+  dueSoon: { aggregate: { count: number } | null }
+  overdue: { aggregate: { count: number } | null }
 }
 
 type InboxAssigneeRow = {
   id: string
   status: string
+  signature_fields?: Array<{
+    id: string
+    field_type: string
+    page_number: number
+    x: number
+    y: number
+    width: number
+    height: number
+    required: boolean
+  }>
   step: {
     id: string
     action: string
@@ -165,7 +218,13 @@ type InboxAssigneeRow = {
     route: {
       id: string
       document_id: string
+      version_id: string
       document: { title: string; reference_number: string | null; status?: string } | null
+      version: {
+        id: string
+        original_sha256: string | null
+        document_files: Array<{ id: string; file_name: string }>
+      } | null
     } | null
   } | null
 }

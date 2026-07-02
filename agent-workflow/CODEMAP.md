@@ -29,6 +29,8 @@ Do not duplicate database schema details here. Database work belongs in `DATA_MA
 | Create document | `src/pages/CreateDocumentPage.tsx` | Multi-step creation wizard scaffold |
 | Routing templates | `src/pages/RoutingTemplatesPage.tsx` | Reusable route templates |
 | Signing workspace | `src/pages/SigningWorkspacePage.tsx` | PDF viewer, fields, route actions |
+| PDF viewer | `src/components/pdf/PdfViewer.tsx` | Lazy PDF.js rendering with zoom and thumbnails |
+| Sign dialog | `src/components/signing/SignDialog.tsx` | Re-auth, consent, typed signature |
 | Reports | `src/pages/ReportsPage.tsx` | Reporting and export scaffold |
 | Admin | `src/pages/AdminPage.tsx` | Users, roles, org settings scaffold |
 | Auth pages | `src/pages/LoginPage.tsx`, `ResetPasswordPage.tsx`, `ChangePasswordPage.tsx`, `VerifyEmailPage.tsx` | Sign-in, password reset/change, email verification |

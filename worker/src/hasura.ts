@@ -263,7 +263,7 @@ export async function startDocumentRoute(
   }
 }
 
-export type AdvanceAction = 'review' | 'approve' | 'acknowledge' | 'reject' | 'return'
+export type AdvanceAction = 'review' | 'approve' | 'acknowledge' | 'sign' | 'reject' | 'return'
 
 type AssigneeRow = {
   id: string
@@ -281,7 +281,7 @@ type AdvanceStepRow = {
   route_step_assignees: AssigneeRow[]
 }
 
-const POSITIVE_ACTIONS = new Set<AdvanceAction>(['review', 'approve', 'acknowledge'])
+const POSITIVE_ACTIONS = new Set<AdvanceAction>(['review', 'approve', 'acknowledge', 'sign'])
 
 function auditEventTypeForAction(action: AdvanceAction): string {
   switch (action) {
@@ -291,6 +291,8 @@ function auditEventTypeForAction(action: AdvanceAction): string {
       return 'assignee.approved'
     case 'acknowledge':
       return 'assignee.acknowledged'
+    case 'sign':
+      return 'assignee.signed'
     case 'reject':
       return 'assignee.rejected'
     case 'return':
@@ -330,7 +332,7 @@ async function findIdempotentAdvanceResponse(
         where: {
           request_id: { _eq: $requestId }
           entity_id: { _eq: $assigneeId }
-          event_type: { _in: ["assignee.reviewed", "assignee.approved", "assignee.acknowledged", "assignee.rejected", "assignee.returned"] }
+          event_type: { _in: ["assignee.reviewed", "assignee.approved", "assignee.acknowledged", "assignee.signed", "assignee.rejected", "assignee.returned"] }
         }
         limit: 1
       ) {
@@ -429,8 +431,12 @@ export async function advanceDocumentRoute(
   const step = route.route_steps.find((row) => row.id === assigneeRow.step_id)
   if (!step) throw new Error('Route step was not found.')
 
-  if (step.action === 'sign' && POSITIVE_ACTIONS.has(input.action)) {
+  if (step.action === 'sign' && input.action !== 'sign') {
     throw new Error('Sign steps must use the signing endpoint.')
+  }
+
+  if (step.action !== 'sign' && input.action === 'sign') {
+    throw new Error('Sign action is only valid for sign steps.')
   }
 
   if (POSITIVE_ACTIONS.has(input.action) && input.action !== step.action) {

@@ -61,7 +61,7 @@ export function completeActionLabel(action: RouteAction): string {
     review: 'Mark reviewed',
     approve: 'Approve',
     acknowledge: 'Acknowledge',
-    sign: 'Open to sign',
+    sign: 'Sign document',
   }
   return labels[action]
 }
@@ -76,4 +76,8 @@ export interface InboxTask {
   dueDate: string
   assignedBy: string
   instructions: string
+  versionId: string
+  versionSha256: string | null
+  previewFileId: string | null
+  previewFileName: string | null
 }

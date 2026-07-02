@@ -240,6 +240,61 @@ def create_relationships(endpoint: str, admin_secret: str) -> None:
             "type": "pg_create_object_relationship",
             "args": {
                 "source": "default",
+                "table": {"schema": "public", "name": "document_routes"},
+                "name": "version",
+                "using": {"foreign_key_constraint_on": "version_id"},
+            },
+        },
+        {
+            "type": "pg_create_array_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_versions"},
+                "name": "document_files",
+                "using": {
+                    "foreign_key_constraint_on": {
+                        "table": {"schema": "public", "name": "document_files"},
+                        "column": "version_id",
+                    }
+                },
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_files"},
+                "name": "document",
+                "using": {"foreign_key_constraint_on": "document_id"},
+            },
+        },
+        {
+            "type": "pg_create_array_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "route_step_assignees"},
+                "name": "signature_fields",
+                "using": {
+                    "foreign_key_constraint_on": {
+                        "table": {"schema": "public", "name": "signature_fields"},
+                        "column": "assignee_id",
+                    }
+                },
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_fields"},
+                "name": "assignee_row",
+                "using": {"foreign_key_constraint_on": "assignee_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
                 "table": {"schema": "public", "name": "profiles"},
                 "name": "organization",
                 "using": {"foreign_key_constraint_on": "organization_id"},
@@ -292,9 +347,26 @@ def drop_user_permission(endpoint: str, admin_secret: str, table_name: str, perm
         pass
 
 
+ASSIGNEE_DOCUMENT_FILTER = {
+    "_or": [
+        {"owner_id": {"_eq": "X-Hasura-User-Id"}},
+        {"document_access_grants": {"grantee_id": {"_eq": "X-Hasura-User-Id"}}},
+        {
+            "document_routes": {
+                "route_steps": {
+                    "route_step_assignees": {
+                        "assignee_id": {"_eq": "X-Hasura-User-Id"},
+                        "status": {"_in": ["pending", "active", "completed"]},
+                    }
+                }
+            }
+        },
+    ]
+}
+
 def apply_permissions(endpoint: str, admin_secret: str) -> None:
     """Apply user-role permissions for Phase 5 reads and wizard routing inserts."""
-    for table_name in ("route_step_assignees", "route_steps", "document_routes", "profiles", "documents"):
+    for table_name in ("route_step_assignees", "route_steps", "document_routes", "profiles", "documents", "document_versions", "document_files", "signature_fields"):
         drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_select_permission")
     for table_name in ("documents", "document_routes", "route_steps", "route_step_assignees"):
         drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_update_permission")
@@ -401,9 +473,20 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                         "created_at",
                     ],
                     "filter": {
-                        "document": {
-                            "owner_id": {"_eq": "X-Hasura-User-Id"},
-                        }
+                        "_or": [
+                            {"document": {"owner_id": {"_eq": "X-Hasura-User-Id"}}},
+                            {
+                                "document": {
+                                    "document_routes": {
+                                        "route_steps": {
+                                            "route_step_assignees": {
+                                                "assignee_id": {"_eq": "X-Hasura-User-Id"},
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                        ]
                     },
                 },
             },
@@ -427,6 +510,40 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                         "version_number",
                         "status",
                     ],
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_files"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "document_id", "version_id", "file_role", "file_name", "mime_type", "size_bytes", "sha256"],
+                    "filter": {"document": ASSIGNEE_DOCUMENT_FILTER},
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_fields"},
+                "role": "user",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "assignee_id",
+                        "field_type",
+                        "page_number",
+                        "x",
+                        "y",
+                        "width",
+                        "height",
+                        "required",
+                    ],
+                    "filter": {"assignee_row": {"assignee_id": {"_eq": "X-Hasura-User-Id"}}},
                 },
             },
         },

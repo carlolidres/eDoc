@@ -83,17 +83,23 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 **Done:** Documents, Dashboard, and Inbox pages use Hasura GraphQL queries.
 
-### Phase 6: Routing — `NOT_STARTED`
+### Phase 6: Routing — `IN_PROGRESS`
 
 - Recipients, steps, templates; sequential/parallel/mixed logic
 - Inbox assignments; due dates, reminders, escalation, delegation
 - Route advancement via Worker transaction
 
-### Phase 7: PDF preparation and signing — `NOT_STARTED`
+**Done:** Route advance API, inbox actions, dashboard due-soon/overdue metrics, signing workspace for non-sign actions.  
+**Remaining:** Broader parallel/mixed/reject flow tests; reminders and delegation.
+
+### Phase 7: PDF preparation and signing — `IN_PROGRESS`
 
 - PDF.js viewer; normalized field placement (pdf-lib)
 - Signing workspace actions; re-authentication
 - Immutable signed PDF generation and signature events
+
+**Done:** Secure PDF preview via Worker, PDF.js viewer in signing workspace, sign endpoint with re-auth/consent/hash verify, signed PDF storage, signature events, route advance after sign.  
+**Remaining:** Field placement wizard UI (PDF-AC-001–003), drawn/uploaded signature modes, Worker deploy + live E2E.
 
 ### Phase 8: Completion and audit — `NOT_STARTED`
 
@@ -149,4 +155,4 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 ## Next Action
 
-Enable Cloudflare R2 and map Nhost user profile rows to auth UUIDs. Continue Phase 5: document creation wizard + R2 upload flow.
+Deploy Worker Phase 7 endpoints and apply Hasura metadata. Continue Phase 7 field-placement wizard or begin Phase 8 certificates.

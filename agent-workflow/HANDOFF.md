@@ -3,12 +3,12 @@
 Last Updated: `2026-07-02`
 Version: `v11`
 Branch: `master`
-Commit: `a804cf3` (2 commits ahead of origin)
-Deployment: `DEPLOYED` — Worker `cb63a841` live with route advance
+Commit: `3666ac1`
+Deployment: `DEPLOYED` — Pages CI success; Worker `0cd9cac4`
 
 ## Current Status
 
-Phase 6 route advancement committed (`8db4327`). Inbox and signing workspace UI call `advanceDocumentRoute` for review/approve/acknowledge; sign steps open the workspace scaffold pending PDF signing.
+Phase 7 PDF preview, PDF.js viewer, and sign-step completion with re-authentication implemented locally. Signing workspace renders authorized PDFs and completes sign assignments through the Worker sign endpoint.
 
 ## Deployment URLs
 
@@ -21,32 +21,32 @@ Phase 6 route advancement committed (`8db4327`). Inbox and signing workspace UI 
 
 ## Active Work
 
-- Objective: `Phase 6+ — inbox UI actions, dashboard due-soon/overdue metrics, signing workspace.`
-- Progress: `Route advance API committed; inbox quick-complete + workspace wiring added.`
-- Remaining: `Dashboard date-filtered aggregates; PDF viewer and sign-step completion.`
+- Objective: `Phase 8 — completion certificates and audit trail UI.`
+- Progress: `Phase 7 PDF preview, PDF.js viewer, and sign-step completion with re-authentication implemented.`
+- Remaining: `Deploy Worker signing endpoints; apply Hasura Phase 7 permissions; live sign-step E2E with R2 PDF.`
 
 ## Recently Completed
 
-- Worker route advance endpoint committed (`8db4327`).
-- Inbox table actions: Open workspace, quick-complete review/approve/acknowledge via Worker API.
-- Signing workspace loads assignment by id and completes non-sign actions.
-- `useRouteAdvance` hook invalidates inbox, dashboard, and documents queries after advance.
+- Worker `GET /api/files/:fileId/preview-url` and `preview-content` with assignee/owner authorization and access logging.
+- Worker `POST /api/documents/:documentId/sign` — password re-auth, version hash check, pdf-lib signature apply, signed PDF in R2, signature events, route advance.
+- Signing workspace: lazy PDF.js viewer (zoom, pages, thumbnails), sign dialog with consent and re-authentication.
+- Hasura metadata script extended for `document_files`, `signature_fields`, assignee `document_versions` read, and signing relationships.
 
 ## Reliability Snapshot
 
 - Acceptance criteria: `PARTIAL` — ROUTE-AC-006/009 met for sequential single-step review; parallel/mixed/reject flows need broader tests.
 - Instruction conflicts: `NONE`
-- Repository status: `CLEAN` — 2 commits ahead of origin
+- Repository status: `CLEAN` — synced with origin
 - Build/database/runtime status: `BUILD_PASSING`, `E2E_PASSING`
-- Last known working state: `npm run build`, `npm run worker:check`, `npm run test`, `e2e_wizard_upload.py` pass.
+- Last known working state: `npm run build`, `npm run worker:check`, `npm run lint`, `npm run test` pass.
 
 ## Known Issues
 
 | Severity | Issue | Impact | Next action |
 |---|---|---|---|
 | Low | Only synced profiles appear as assignees | Multi-user routing needs more `sync_nhost_profile.py` runs | Sync additional Nhost users |
-| Low | Due soon/overdue metrics not computed | Dashboard shows 0 for those cards | Add date-filtered aggregates |
-| Low | Sign steps cannot complete from UI yet | Sign assignments open workspace but advance is disabled | Phase 7 PDF signing flow |
+| Low | Worker sign endpoint not yet deployed | Production sign steps still blocked until redeploy | Deploy Worker after review |
+| Low | Hasura Phase 7 permissions need re-apply | Assignees may not see PDF metadata until metadata script runs | Run `setup_hasura_metadata.py` |
 | Low | Nhost production redirect URLs not confirmed | Reset/verify may fail on Pages | Owner adds URLs per `SETUP.md` |
 
 ## Verification
@@ -54,20 +54,23 @@ Phase 6 route advancement committed (`8db4327`). Inbox and signing workspace UI 
 | Check | Status | Result |
 |---|---|---|
 | Hasura metadata (routing) | `PASS` | Owner insert/select on routes, steps, assignees |
-| Build | `PASS` | Vite production build after inbox wiring |
-| Unit tests | `PASS` | `npm run test` (9 tests) |
-| GitHub Pages deploy | `NOT_RUN` | Frontend inbox wiring not yet pushed |
+| Build | `PASS` | Vite production build with lazy PDF.js chunk |
+| Unit tests | `PASS` | `npm run test` (11 tests) |
+| Worker type-check | `PASS` | `npm run worker:check` |
+| Lint | `PASS` | `npm run lint` |
+| GitHub Pages deploy | `NOT_RUN` | Pending commit/deploy of Phase 7 frontend |
+| Worker deploy | `NOT_RUN` | Pending deploy of Phase 7 signing/preview endpoints |
 
 ## SQLite Sync
 
 - Nhost migration status: `APPLIED` — `0001_initial.sql`, `0002_seed_dev.sql`
-- Hasura permissions: `APPLIED` (dev, `user` role, routing + org profiles)
+- Hasura permissions: `PENDING_REAPPLY` — Phase 7 `document_files` / `signature_fields` / assignee version reads in metadata script
 
 ## Next Action
 
-1. Push to origin for GitHub Pages deploy.
-2. Add dashboard due-soon/overdue date-filtered aggregates.
-3. Begin Phase 7: PDF viewer and signing workspace with re-authentication.
+1. Deploy Worker with Phase 7 signing and preview endpoints.
+2. Re-run `database/scripts/setup_hasura_metadata.py` for Phase 7 read permissions.
+3. Begin Phase 8: completion certificates and audit trail UI.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 

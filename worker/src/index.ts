@@ -10,6 +10,8 @@ import {
   markDocumentPreparing,
   startDocumentRoute,
 } from './hasura'
+import { assertFileAccess, logFileAccess } from './files'
+import { signDocument } from './signing'
 
 type Bindings = {
   EDOC_R2: R2Bucket
@@ -19,7 +21,7 @@ type Bindings = {
 }
 
 type AppContext = Context<{ Bindings: Bindings }>
-type ErrorStatus = 400 | 401 | 403 | 500
+type ErrorStatus = 400 | 401 | 403 | 404 | 500
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -57,6 +59,16 @@ const completeUploadSchema = z.object({
   fileName: z.string().min(1),
   mimeType: z.literal('application/pdf'),
   sizeBytes: z.number().int().positive(),
+})
+
+const signDocumentSchema = z.object({
+  routeId: z.string().min(1),
+  assigneeRowId: z.string().min(1),
+  versionSha256: z.string().min(64).max(64),
+  password: z.string().min(1),
+  consent: z.literal(true),
+  signatureMeaning: z.string().min(1),
+  typedSignature: z.string().min(1),
 })
 
 const advanceRouteSchema = z
@@ -226,7 +238,51 @@ app.post('/api/files/complete-upload', async (c) => {
 app.get('/api/files/:fileId/preview-url', async (c) => {
   const claims = await requireAuth(c)
   if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
-  return c.json({ requestId: requestId(c), previewUrl: null, expiresInSeconds: 300 })
+
+  const fileId = c.req.param('fileId')
+  if (!fileId) return jsonError(c, 400, 'VALIDATION_FAILED', 'File id is required.')
+
+  try {
+    await assertFileAccess(c.env, fileId, claims.sub)
+    const previewUrl = `${new URL(c.req.url).origin}/api/files/${fileId}/preview-content`
+    return c.json({ requestId: requestId(c), previewUrl, expiresInSeconds: 300 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Preview authorization failed.'
+    const status: ErrorStatus = message.includes('not authorized') ? 403 : 400
+    return jsonError(c, status, 'FORBIDDEN', message)
+  }
+})
+
+app.get('/api/files/:fileId/preview-content', async (c) => {
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  if (!hasR2(c)) return jsonError(c, 500, 'R2_NOT_CONFIGURED', 'R2 binding is not configured.')
+
+  const fileId = c.req.param('fileId')
+  if (!fileId) return jsonError(c, 400, 'VALIDATION_FAILED', 'File id is required.')
+
+  try {
+    const file = await assertFileAccess(c.env, fileId, claims.sub)
+    const object = await c.env.EDOC_R2.get(file.r2_object_key)
+    if (!object) return jsonError(c, 404, 'FILE_NOT_FOUND', 'PDF file was not found in storage.')
+
+    await logFileAccess(c.env, {
+      organizationId: file.organization_id,
+      fileId: file.id,
+      userId: claims.sub,
+      accessType: 'preview',
+      ipAddress: c.req.header('cf-connecting-ip') ?? undefined,
+    })
+
+    const headers = new Headers()
+    headers.set('Content-Type', file.mime_type || 'application/pdf')
+    headers.set('Cache-Control', 'private, max-age=300')
+    return new Response(object.body, { headers })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Preview failed.'
+    const status: ErrorStatus = message.includes('not authorized') ? 403 : 500
+    return jsonError(c, status, 'PREVIEW_FAILED', message)
+  }
 })
 
 app.get('/api/files/:fileId/download-url', async (c) => {
@@ -244,7 +300,42 @@ app.post('/api/documents/:documentId/hash', async (c) => {
 app.post('/api/documents/:documentId/sign', async (c) => {
   const claims = await requireAuth(c)
   if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
-  return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
+  if (!hasR2(c)) return jsonError(c, 500, 'R2_NOT_CONFIGURED', 'R2 binding is not configured.')
+
+  const idempotencyKey = c.req.header('idempotency-key')?.trim()
+  if (!idempotencyKey) {
+    return jsonError(c, 400, 'VALIDATION_FAILED', 'Idempotency-Key header is required.')
+  }
+
+  const documentId = c.req.param('documentId')
+  if (!documentId) return jsonError(c, 400, 'VALIDATION_FAILED', 'Document id is required.')
+
+  const parsed = signDocumentSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return jsonError(c, 400, 'VALIDATION_FAILED', 'Sign request is invalid.')
+
+  try {
+    const result = await signDocument(c.env, c.env.EDOC_R2, {
+      documentId,
+      routeId: parsed.data.routeId,
+      assigneeRowId: parsed.data.assigneeRowId,
+      userId: claims.sub,
+      versionSha256: parsed.data.versionSha256,
+      password: parsed.data.password,
+      consent: parsed.data.consent,
+      signatureMeaning: parsed.data.signatureMeaning,
+      typedSignature: parsed.data.typedSignature,
+      idempotencyKey,
+      requestId: requestId(c),
+      ipAddress: c.req.header('cf-connecting-ip') ?? undefined,
+      userAgent: c.req.header('user-agent') ?? undefined,
+    })
+    return c.json({ requestId: requestId(c), ...result })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Signing failed.'
+    const status: ErrorStatus =
+      message.includes('not authorized') || message.includes('version changed') ? 403 : 400
+    return jsonError(c, status, 'SIGN_FAILED', message)
+  }
 })
 
 app.post('/api/documents/:documentId/certificate', async (c) => {

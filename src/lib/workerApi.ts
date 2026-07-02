@@ -78,3 +78,58 @@ export function advanceDocumentRoute(
     accessToken,
   )
 }
+
+export interface FilePreviewResponse {
+  requestId: string
+  previewUrl: string
+  expiresInSeconds: number
+}
+
+export function getFilePreviewUrl(fileId: string, accessToken: string) {
+  return workerFetch<FilePreviewResponse>(`/api/files/${fileId}/preview-url`, { method: 'GET' }, accessToken)
+}
+
+export interface SignDocumentResponse {
+  requestId: string
+  signatureEventId: string
+  signedFileId: string
+  finalPdfHash: string
+  documentHash: string
+  routeId: string
+  assigneeRowId: string
+  routeCompleted: boolean
+  idempotent: boolean
+}
+
+export function signDocument(
+  documentId: string,
+  input: {
+    routeId: string
+    assigneeRowId: string
+    versionSha256: string
+    password: string
+    consent: boolean
+    signatureMeaning: string
+    typedSignature: string
+    idempotencyKey: string
+  },
+  accessToken: string,
+) {
+  return workerFetch<SignDocumentResponse>(
+    `/api/documents/${documentId}/sign`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      body: JSON.stringify({
+        routeId: input.routeId,
+        assigneeRowId: input.assigneeRowId,
+        versionSha256: input.versionSha256,
+        password: input.password,
+        consent: input.consent,
+        signatureMeaning: input.signatureMeaning,
+        typedSignature: input.typedSignature,
+      }),
+    },
+    accessToken,
+  )
+}

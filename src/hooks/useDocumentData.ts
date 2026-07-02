@@ -10,6 +10,7 @@ import {
   type InboxTasksResponse,
 } from '../graphql/queries'
 import type { DashboardMetrics, DocumentListItem, DocumentStatus, InboxTask, RouteAction } from '../types/domain'
+import { dashboardDueDateBounds } from '../utils/dueDateMetrics'
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -47,13 +48,18 @@ export function useDocumentListItems() {
 }
 
 export function useDashboardMetricsData() {
-  const query = useGraphQLQuery<DashboardMetricsResponse>('dashboard-metrics', DASHBOARD_METRICS)
+  const dueDateBounds = dashboardDueDateBounds()
+  const query = useGraphQLQuery<DashboardMetricsResponse>(
+    'dashboard-metrics',
+    DASHBOARD_METRICS,
+    dueDateBounds,
+  )
   const metrics: DashboardMetrics = {
     awaitingMyAction: query.data?.awaitingMyAction.aggregate?.count ?? 0,
     myDrafts: query.data?.myDrafts.aggregate?.count ?? 0,
     inRouting: query.data?.inRouting.aggregate?.count ?? 0,
-    dueSoon: 0,
-    overdue: 0,
+    dueSoon: query.data?.dueSoon.aggregate?.count ?? 0,
+    overdue: query.data?.overdue.aggregate?.count ?? 0,
     returned: query.data?.returned.aggregate?.count ?? 0,
     rejected: query.data?.rejected.aggregate?.count ?? 0,
     completed: query.data?.completed.aggregate?.count ?? 0,
@@ -66,6 +72,7 @@ export function useDashboardMetricsData() {
 function mapInboxAssigneeRow(row: InboxTasksResponse['route_step_assignees'][number]): InboxTask | null {
   const route = row.step?.route
   if (!route) return null
+  const originalFile = route.version?.document_files?.[0] ?? null
   return {
     id: row.id,
     routeId: route.id,
@@ -76,6 +83,10 @@ function mapInboxAssigneeRow(row: InboxTasksResponse['route_step_assignees'][num
     dueDate: formatDate(row.step?.due_at),
     assignedBy: '—',
     instructions: route.document?.reference_number ? `Ref: ${route.document.reference_number}` : '',
+    versionId: route.version_id,
+    versionSha256: route.version?.original_sha256 ?? null,
+    previewFileId: originalFile?.id ?? null,
+    previewFileName: originalFile?.file_name ?? null,
   }
 }
 
