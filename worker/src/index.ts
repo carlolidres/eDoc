@@ -1,8 +1,10 @@
 import { Hono, type Context } from 'hono'
+import { cors } from 'hono/cors'
 import { z } from 'zod'
 import { verifyBearerToken } from './auth'
 import {
   assertDocumentOwner,
+  advanceDocumentRoute,
   hashR2Object,
   insertDocumentFile,
   markDocumentPreparing,
@@ -20,6 +22,22 @@ type AppContext = Context<{ Bindings: Bindings }>
 type ErrorStatus = 400 | 401 | 403 | 500
 
 const app = new Hono<{ Bindings: Bindings }>()
+
+const ALLOWED_ORIGINS = new Set([
+  'https://carlolidres.github.io',
+  'http://127.0.0.1:5173',
+  'http://localhost:5173',
+])
+
+app.use(
+  '*',
+  cors({
+    origin: (origin) => (ALLOWED_ORIGINS.has(origin) ? origin : ''),
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Object-Key', 'X-Request-Id', 'Idempotency-Key'],
+    allowMethods: ['GET', 'POST', 'PUT', 'OPTIONS'],
+    maxAge: 86400,
+  }),
+)
 
 const uploadUrlSchema = z.object({
   organizationId: z.string().min(1),
@@ -40,6 +58,19 @@ const completeUploadSchema = z.object({
   mimeType: z.literal('application/pdf'),
   sizeBytes: z.number().int().positive(),
 })
+
+const advanceRouteSchema = z
+  .object({
+    assigneeRowId: z.string().min(1),
+    action: z.enum(['review', 'approve', 'acknowledge', 'reject', 'return']),
+    comment: z.string().optional(),
+    reason: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.action === 'reject' || value.action === 'return') && !value.reason?.trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Reason is required for reject and return actions.' })
+    }
+  })
 
 function requestId(c: Pick<AppContext, 'req'>) {
   return c.req.header('x-request-id') ?? crypto.randomUUID()
@@ -243,7 +274,36 @@ app.post('/api/routes/:routeId/start', async (c) => {
 app.post('/api/routes/:routeId/advance', async (c) => {
   const claims = await requireAuth(c)
   if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
-  return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
+
+  const idempotencyKey = c.req.header('idempotency-key')?.trim()
+  if (!idempotencyKey) {
+    return jsonError(c, 400, 'VALIDATION_FAILED', 'Idempotency-Key header is required.')
+  }
+
+  const routeId = c.req.param('routeId')
+  if (!routeId) return jsonError(c, 400, 'VALIDATION_FAILED', 'Route id is required.')
+
+  const parsed = advanceRouteSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return jsonError(c, 400, 'VALIDATION_FAILED', 'Advance request is invalid.')
+
+  try {
+    const result = await advanceDocumentRoute(c.env, {
+      routeId,
+      assigneeRowId: parsed.data.assigneeRowId,
+      userId: claims.sub,
+      action: parsed.data.action,
+      comment: parsed.data.comment,
+      reason: parsed.data.reason,
+      idempotencyKey,
+      requestId: requestId(c),
+    })
+    return c.json({ requestId: requestId(c), ...result })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Route advance failed.'
+    const status: ErrorStatus =
+      message.includes('not authorized') || message.includes('not found') ? 403 : 400
+    return jsonError(c, status, 'ROUTE_ADVANCE_FAILED', message)
+  }
 })
 
 app.post('/api/routes/:routeId/remind', async (c) => {

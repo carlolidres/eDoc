@@ -82,11 +82,21 @@ def graphql_request(url: str, token: str, query: str, variables: dict | None = N
     return result["data"]
 
 
-def worker_request(path: str, token: str, *, method: str = "GET", body: dict | None = None) -> dict:
+def worker_request(
+    path: str,
+    token: str,
+    *,
+    method: str = "GET",
+    body: dict | None = None,
+    idempotency_key: str | None = None,
+) -> dict:
+    headers = {"Authorization": f"Bearer {token}"}
+    if idempotency_key:
+        headers["Idempotency-Key"] = idempotency_key
     return request_json(
         f"{WORKER_URL}{path}",
         method=method,
-        headers={"Authorization": f"Bearer {token}"},
+        headers=headers,
         body=body,
     )
 
@@ -333,7 +343,7 @@ def main() -> None:
     if not updated or updated["status"] != "ready_for_routing":
         raise RuntimeError("Document status was not updated to ready_for_routing.")
 
-    print("9/9 Start route via Worker...")
+    print("9/10 Start route via Worker...")
     started = worker_request(f"/api/routes/{route['id']}/start", token, method="POST")
     if started.get("status") != "active":
         raise RuntimeError(f"Route was not activated: {started}")
@@ -360,18 +370,38 @@ def main() -> None:
     if not active_assignees:
         raise RuntimeError("No active inbox assignees after route start.")
 
+    assignee_row_id = active_assignees[0]["id"]
+    print("10/10 Advance route via Worker (review)...")
+    advanced = worker_request(
+        f"/api/routes/{route['id']}/advance",
+        token,
+        method="POST",
+        body={
+            "assigneeRowId": assignee_row_id,
+            "action": "review",
+            "comment": "E2E smoke review complete.",
+        },
+        idempotency_key=str(uuid.uuid4()),
+    )
+    if advanced.get("assigneeStatus") != "completed":
+        raise RuntimeError(f"Assignee was not completed: {advanced}")
+    if advanced.get("routeCompleted") is not True:
+        raise RuntimeError(f"Single-step route did not complete: {advanced}")
+
     print(
-        "PASS: E2E wizard upload + routing + activation completed.\n"
+        "PASS: E2E wizard upload + routing + activation + advance completed.\n"
         f"  document_id={document['id']}\n"
         f"  version_id={version['id']}\n"
         f"  route_id={route['id']}\n"
-        f"  route_status={started.get('status')}\n"
+        f"  route_status={advanced.get('routeStatus')}\n"
+        f"  document_status={advanced.get('documentStatus')}\n"
+        f"  assignee_row_id={assignee_row_id}\n"
         f"  active_step_ids={started.get('activeStepIds')}\n"
         f"  inbox_assignees={len(active_assignees)}\n"
         f"  file_id={complete.get('fileId', file_id)}\n"
         f"  sha256={complete.get('sha256')}\n"
         f"  upload_status={complete.get('status')}\n"
-        f"  document_status={updated['status']}"
+        f"  document_status_before_advance={updated['status']}"
     )
 
 

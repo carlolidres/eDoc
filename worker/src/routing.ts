@@ -3,17 +3,15 @@ export type StepStatus = 'pending' | 'active' | 'completed' | 'rejected' | 'retu
 export type CompletionRule = 'all' | 'any' | 'majority' | 'minimum_count'
 export type AssigneeStatus = 'pending' | 'active' | 'completed' | 'rejected' | 'returned' | 'delegated' | 'invalidated'
 
+export interface AssigneeState {
+  id: string
+  status: AssigneeStatus
+}
+
 export interface RouteStepState {
   id: string
   sequence: number
   status: StepStatus
-  requiredCount: number
-  completedCount: number
-}
-
-export interface AssigneeState {
-  id: string
-  status: AssigneeStatus
 }
 
 export function getRequiredCompletionCount(
@@ -53,17 +51,17 @@ export function isStepCompleteByRule(
   return countCompletedAssignees(assignees) >= required
 }
 
-export function getNextActiveSteps(mode: RoutingMode, steps: RouteStepState[]): string[] {
+export function getNextActiveStepIds(mode: RoutingMode, steps: RouteStepState[]): string[] {
   const ordered = [...steps].sort((a, b) => a.sequence - b.sequence)
   if (mode === 'parallel') return ordered.filter((step) => step.status === 'pending').map((step) => step.id)
   const firstPending = ordered.find((step) => step.status === 'pending')
   return firstPending ? [firstPending.id] : []
 }
 
-export function isStepComplete(step: RouteStepState): boolean {
-  return step.completedCount >= step.requiredCount
-}
-
 export function isRouteComplete(steps: Array<{ status: StepStatus }>): boolean {
   return steps.length > 0 && steps.every((step) => step.status === 'completed' || step.status === 'skipped')
+}
+
+export function shouldInvalidateRemainingAssignees(rule: CompletionRule, assignees: AssigneeState[]): boolean {
+  return rule === 'any' && isStepCompleteByRule(rule, assignees)
 }

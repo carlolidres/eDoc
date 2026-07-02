@@ -1,14 +1,14 @@
 # Current Handoff
 
 Last Updated: `2026-07-02`
-Version: `v10`
+Version: `v11`
 Branch: `master`
-Commit: `464eac4`
-Deployment: `DEPLOYED` — GitHub Pages CI triggered; Worker `092ec360` live
+Commit: `uncommitted`
+Deployment: `DEPLOYED` — Worker `cb63a841` live with route advance
 
 ## Current Status
 
-Baseline approved. Phase 5 wizard routing complete. Phase 6 route activation live: Worker `POST /api/routes/:routeId/start` activates draft routes, sets document `in_routing`, activates first sequential step assignees, and records `route.started` audit event.
+Phase 6 route advancement implemented. Worker `POST /api/routes/:routeId/advance` completes assignee actions (review/approve/acknowledge/reject/return), evaluates step completion rules, activates next sequential steps, completes routes/documents, records audit events, and supports `Idempotency-Key` replay.
 
 ## Deployment URLs
 
@@ -21,24 +21,25 @@ Baseline approved. Phase 5 wizard routing complete. Phase 6 route activation liv
 
 ## Active Work
 
-- Objective: `Phase 6+ — route advancement, dashboard due-soon/overdue metrics, signing workspace.`
-- Progress: `Route start endpoint deployed; wizard auto-sends route; E2E 9-step smoke PASS.`
-- Remaining: `Worker route advance; dashboard date-filtered aggregates; PDF field placement.`
+- Objective: `Phase 6+ — inbox UI actions, dashboard due-soon/overdue metrics, signing workspace.`
+- Progress: `Route start + advance deployed; E2E 10-step smoke PASS.`
+- Remaining: `Wire inbox/signing UI to advance API; dashboard date-filtered aggregates; PDF field placement.`
 
 ## Recently Completed
 
-- `464eac4` — Phase 6: `POST /api/routes/:routeId/start`, wizard send, inbox query filters active steps only.
-- `21dd3da` — Phase 5: wizard routing step, Hasura routing permissions, E2E smoke script.
-- E2E API smoke PASS: sign-in → profile → document → R2 upload → draft route → `ready_for_routing` → route start → 1 inbox assignee.
-- Worker deployed with R2 binding (`edoc-dev`).
+- Worker `POST /api/routes/:routeId/advance` with transactional Hasura mutation, completion rules, idempotency.
+- `worker/src/routing.ts` + extended `src/utils/routingRules.ts` for completion thresholds.
+- `src/lib/workerApi.ts` `advanceDocumentRoute` client helper.
+- E2E extended: route start → review advance → route/document `completed`.
+- Worker deployed version `cb63a841`.
 
 ## Reliability Snapshot
 
-- Acceptance criteria: `PARTIAL` — route activation meets ROUTE-AC-006; advance/signing not yet implemented.
+- Acceptance criteria: `PARTIAL` — ROUTE-AC-006/009 met for sequential single-step review; parallel/mixed/reject flows need broader tests.
 - Instruction conflicts: `NONE`
-- Repository status: `CLEAN`
+- Repository status: `DIRTY` — worker advance implementation uncommitted
 - Build/database/runtime status: `BUILD_PASSING`, `E2E_PASSING`
-- Last known working state: `npm run build`, `npm run worker:check`, `e2e_wizard_upload.py` pass.
+- Last known working state: `npm run build`, `npm run worker:check`, `npm run test`, `e2e_wizard_upload.py` pass.
 
 ## Known Issues
 
@@ -46,7 +47,8 @@ Baseline approved. Phase 5 wizard routing complete. Phase 6 route activation liv
 |---|---|---|---|
 | Low | Only synced profiles appear as assignees | Multi-user routing needs more `sync_nhost_profile.py` runs | Sync additional Nhost users |
 | Low | Due soon/overdue metrics not computed | Dashboard shows 0 for those cards | Add date-filtered aggregates |
-| Low | `advance` endpoint still 501 | Steps cannot complete yet | Phase 6 continuation |
+| Low | Inbox UI has no advance action buttons | Users cannot complete tasks from UI yet | Wire Inbox/Signing workspace to Worker |
+| Low | Sign steps blocked on advance endpoint | Sign completion needs signing workspace | Phase 7 signing flow |
 | Low | Nhost production redirect URLs not confirmed | Reset/verify may fail on Pages | Owner adds URLs per `SETUP.md` |
 
 ## Verification
@@ -54,11 +56,12 @@ Baseline approved. Phase 5 wizard routing complete. Phase 6 route activation liv
 | Check | Status | Result |
 |---|---|---|
 | Hasura metadata (routing) | `PASS` | Owner insert/select on routes, steps, assignees |
-| Build | `PASS` | Vite production build with route send |
+| Build | `PASS` | Vite production build |
 | Worker typecheck | `PASS` | `npm run worker:check` |
-| Worker deploy | `PASS` | `edoc-worker` version `092ec360` |
-| E2E wizard + routing + start | `PASS` | `e2e_wizard_upload.py --email carlolidres@gmail.com` |
-| GitHub Pages deploy | `PENDING` | CI for commit `464eac4` |
+| Unit tests | `PASS` | `npm run test` (routing rules extended) |
+| Worker deploy | `PASS` | `edoc-worker` version `cb63a841` |
+| E2E wizard + routing + start + advance | `PASS` | `e2e_wizard_upload.py --email carlolidres@gmail.com` |
+| GitHub Pages deploy | `NOT_RUN` | No frontend changes requiring deploy |
 
 ## SQLite Sync
 
@@ -67,9 +70,9 @@ Baseline approved. Phase 5 wizard routing complete. Phase 6 route activation liv
 
 ## Next Action
 
-1. Confirm GitHub Pages CI green for `464eac4`.
-2. Manual UI check: create document → routing → verify inbox shows active task.
-3. Implement `POST /api/routes/:routeId/advance` for step completion.
+1. Wire Inbox/Signing workspace UI to `advanceDocumentRoute` Worker API.
+2. Add dashboard due-soon/overdue date-filtered aggregates.
+3. Begin Phase 7: PDF viewer and signing workspace with re-authentication.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 

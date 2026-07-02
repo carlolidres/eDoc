@@ -36,3 +36,45 @@ export interface StartRouteResponse {
 export function startDocumentRoute(routeId: string, accessToken: string) {
   return workerFetch<StartRouteResponse>(`/api/routes/${routeId}/start`, { method: 'POST' }, accessToken)
 }
+
+export interface AdvanceRouteResponse {
+  requestId: string
+  routeId: string
+  assigneeRowId: string
+  stepId: string
+  action: 'review' | 'approve' | 'acknowledge' | 'reject' | 'return'
+  assigneeStatus: string
+  stepStatus: string
+  routeStatus: string
+  documentStatus: string
+  routeCompleted: boolean
+  nextActiveStepIds: string[]
+  idempotent: boolean
+}
+
+export function advanceDocumentRoute(
+  routeId: string,
+  input: {
+    assigneeRowId: string
+    action: AdvanceRouteResponse['action']
+    comment?: string
+    reason?: string
+    idempotencyKey: string
+  },
+  accessToken: string,
+) {
+  return workerFetch<AdvanceRouteResponse>(
+    `/api/routes/${routeId}/advance`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': input.idempotencyKey },
+      body: JSON.stringify({
+        assigneeRowId: input.assigneeRowId,
+        action: input.action,
+        comment: input.comment,
+        reason: input.reason,
+      }),
+    },
+    accessToken,
+  )
+}
