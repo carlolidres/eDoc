@@ -3,7 +3,7 @@
 Last Updated: `2026-07-02`
 Version: `v13` (Phase 8 deployed)
 Branch: `master`
-Commit: `ec164f6` (+ verification query fix pending commit)
+Commit: `b9e437d`
 Deployment: `DEPLOYED` — Worker `af39241e`; GitHub Pages workflow `28586057558` success
 
 ## Current Status
@@ -37,7 +37,7 @@ Phase 8 (`v13`) committed, Worker redeployed, and GitHub Pages updated. Completi
 
 - Acceptance criteria: `PARTIAL` — CERT/AUDIT baseline partially met; integrity hash and auditor role scope remain.
 - Instruction conflicts: `NONE`
-- Repository status: `DIRTY` — verification query fix uncommitted
+- Repository status: `CLEAN` (except untracked `.cursor/`)
 - Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED`, `WORKER_DEPLOYED`, `PAGES_DEPLOYED`
 - Last known working state: `npm run build`, `npm run worker:check`, `npm run lint`, `npm run test` pass.
 
@@ -91,10 +91,9 @@ Comments: Full certificate E2E requires a completed route with issued certificat
 
 ## Next Action
 
-1. Commit verification query fix.
-2. Sign in on Pages and walk through inbox → signing workspace → audit trail / certificate verify link.
-3. Run certificate issuance E2E after a completed route.
-4. Phase 8 remaining: auditor-role scoped reads, integrity hash on audit events.
+1. Sign in on Pages and walk through inbox → signing workspace → audit trail / certificate verify link.
+2. Run certificate issuance E2E after a completed route.
+3. Phase 8 remaining: auditor-role scoped reads, integrity hash on audit events.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 
