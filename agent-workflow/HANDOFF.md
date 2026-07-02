@@ -1,14 +1,14 @@
 # Current Handoff
 
 Last Updated: `2026-07-02`
-Version: `v6`
+Version: `v7`
 Branch: `master`
-Commit: `89c5456`
-Deployment: `DEPLOYED` (frontend GitHub Pages run `28574815381`, 2026-07-02)
+Commit: `uncommitted`
+Deployment: `NOT_DEPLOYED` (local changes pending commit + Pages CI)
 
 ## Current Status
 
-Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tracked with org-scoped `user` role permissions. Phase 5 in progress: GraphQL reads on UI pages; document creation wizard (metadata + upload) and Worker R2 proxy flow implemented locally.
+Baseline approved. Phase 4 Nhost migration applied (48 tables). Phase 5 wizard steps 0–2 complete: metadata, R2 upload, and recipients/routing (sequential draft route). Hasura owner-scoped routing insert permissions applied on Nhost dev.
 
 ## Deployment URLs
 
@@ -21,62 +21,56 @@ Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tr
 
 ## Active Work
 
-- Objective: `Phase 5 — document creation wizard, R2 upload, profile-to-auth user mapping.`
-- Progress: `Wizard steps 1–2 persist metadata via Hasura and upload PDF via Worker→R2; complete-upload hashes file and inserts document_files.`
-- Remaining: `Apply document_versions Hasura permissions on Nhost; map profiles to auth UUIDs; E2E test wizard upload in production.`
+- Objective: `Phase 5/6 — wizard routing step, route activation, dashboard metrics.`
+- Progress: `Wizard step 3 (recipients & routing) implemented; Hasura routing permissions re-applied.`
+- Remaining: `Deploy frontend; E2E routing smoke with owner credentials; Phase 6 Worker route activation; dashboard due-soon/overdue metrics.`
 
 ## Recently Completed
 
+- Wizard step 3: sequential route builder in `CreateDocumentPage` (action, assignee, optional due date).
+- GraphQL: `ORG_PROFILES`, nested `CREATE_DOCUMENT_ROUTE`, `UPDATE_DOCUMENT_STATUS` → `ready_for_routing`.
+- Hasura: org peer `profiles` select; owner insert/select on `document_routes`, `route_steps`, `route_step_assignees`.
+- Extended `e2e_wizard_upload.py` with route create + status update steps (8-step flow).
 - Committed `89c5456` — Hasura `x-hasura-role: user` header for authenticated GraphQL queries.
-- Deployed frontend via GitHub Pages CI (run `28574815381`).
-- Committed `7c8cc9c` — document creation wizard, Worker R2 upload, Hasura `document_versions` permissions script.
-- Deployed Worker `a4f1816e` with R2 binding `edoc-dev`; frontend via GitHub Pages CI (run `28573704291`).
-- Committed `f3b0dc6` — Phase 4/5 Nhost schema, Hasura GraphQL reads, database scripts.
-- Document creation wizard: metadata save (`documents` + `document_versions`) and PDF upload flow.
-- Worker: `PUT /api/files/upload-content`, R2 put, SHA-256 hash, `document_files` insert via Hasura admin, status → `preparing`.
-- Added `document_versions` insert/select permissions to `setup_hasura_metadata.py`.
+- E2E API smoke PASS (prior): profile → document create → Worker R2 upload → complete-upload.
 
 ## Reliability Snapshot
 
-- Acceptance criteria: `PARTIAL` — creation wizard + R2 flow coded; needs Nhost profile mapping and R2 enablement to test end-to-end.
+- Acceptance criteria: `PARTIAL` — routing UI + permissions implemented; full E2E routing smoke not run (needs owner sign-in).
 - Instruction conflicts: `NONE`
-- Repository status: `CLEAN` (`.cursor/` untracked only).
+- Repository status: `DIRTY` — wizard routing step changes uncommitted.
 - Build/database/runtime status: `BUILD_PASSING`
-- Last known working state: `npm run build` and `npm run worker:check` pass locally.
+- Last known working state: `npm run build`, `npm run lint`, `npm run worker:check` pass locally.
 
 ## Known Issues
 
 | Severity | Issue | Impact | Next action |
 |---|---|---|---|
-| Medium | Seed profiles use fixed UUIDs, not Nhost auth user IDs | Empty lists / wizard blocked until profile row matches signed-in user | Insert profile with Nhost user UUID + org |
-| Medium | R2 binding deployed but upload not E2E verified in production | Upload may still fail on auth/profile gaps | Test wizard after profile + Hasura permissions |
-| Medium | `document_versions` permissions not yet re-applied on Nhost | Version insert may fail until metadata script rerun | Run `python database/scripts/setup_hasura_metadata.py` |
+| Low | Route stays `draft` after wizard save | Inbox empty until Phase 6 activation | Worker `start-route` endpoint |
+| Low | Only synced profiles appear as assignees | Multi-user routing needs more `sync_nhost_profile.py` runs | Sync additional Nhost users |
+| Low | Due soon/overdue metrics not computed | Dashboard shows 0 for those cards | Add date-filtered aggregates |
 | Low | Nhost production redirect URLs not confirmed | Reset/verify may fail on Pages | Owner adds URLs per `SETUP.md` |
-| Low | Due soon/overdue metrics not computed | Dashboard shows 0 for those cards | Add date-filtered aggregates in Phase 5 |
 
 ## Verification
 
 | Check | Status | Result |
 |---|---|---|
-| SQLite validate | `PASS` | 48 tables |
-| Nhost migration apply | `PASS` | 48 public tables on Nhost PostgreSQL |
-| Hasura metadata | `PARTIAL` | User permissions applied; rerun for `document_versions` |
-| Build | `PASS` | Vite production build with wizard |
+| Hasura metadata (routing) | `PASS` | `setup_hasura_metadata.py` applied on Nhost dev |
+| Build | `PASS` | Vite production build with routing wizard |
 | Worker typecheck | `PASS` | `npm run worker:check` |
-| Lint | `PASS` | CI run `28574815381` |
-| E2E wizard upload | `NOT_RUN` | Blocked on profile + R2 |
+| Lint | `PASS` | 0 errors (2 pre-existing warnings) |
+| E2E wizard + routing | `NOT_RUN` | Requires owner `--email` + `E2E_PASSWORD` in `.dev.vars` |
 
 ## SQLite Sync
 
 - Nhost migration status: `APPLIED` — `0001_initial.sql`, `0002_seed_dev.sql`
-- Hasura permissions: `APPLIED` (dev, `user` role); `document_versions` pending re-apply
+- Hasura permissions: `APPLIED` (dev, `user` role, routing insert + org profiles)
 
 ## Next Action
 
-1. Insert `profiles` row in Nhost matching signed-in user UUID and seed organization.
-2. Enable Cloudflare R2; redeploy Worker with R2 binding.
-3. Run `setup_hasura_metadata.py` to apply `document_versions` permissions.
-4. E2E test document creation wizard on production URLs.
+1. Commit and deploy frontend so production `#/documents/new` includes routing step.
+2. Run `python database/scripts/e2e_wizard_upload.py --email <owner>` to verify full 8-step API flow.
+3. Phase 6: Worker route activation so draft routes populate inbox.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 

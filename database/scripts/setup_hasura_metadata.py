@@ -227,6 +227,38 @@ def create_relationships(endpoint: str, admin_secret: str) -> None:
                 "using": {"foreign_key_constraint_on": "document_id"},
             },
         },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_versions"},
+                "name": "document",
+                "using": {"foreign_key_constraint_on": "document_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "profiles"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_array_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "organizations"},
+                "name": "profiles",
+                "using": {
+                    "foreign_key_constraint_on": {
+                        "table": {"schema": "public", "name": "profiles"},
+                        "column": "organization_id",
+                    }
+                },
+            },
+        },
     ]
     for rel in relationships:
         try:
@@ -239,32 +271,34 @@ def create_relationships(endpoint: str, admin_secret: str) -> None:
     print("Relationships configured.")
 
 
-def apply_permissions(endpoint: str, admin_secret: str) -> None:
-    """Apply user-role permissions for Phase 5 read paths."""
-    for table_name in ("route_step_assignees", "profiles"):
-        try:
-            metadata_request(
-                endpoint,
-                admin_secret,
-                {
-                    "type": "pg_drop_select_permission",
-                    "args": {"source": "default", "table": {"schema": "public", "name": table_name}, "role": "user"},
-                },
-            )
-        except urllib.error.HTTPError:
-            pass
+OWNER_DOCUMENT_FILTER = {"document": {"owner_id": {"_eq": "X-Hasura-User-Id"}}}
+OWNER_ROUTE_FILTER = {"route": OWNER_DOCUMENT_FILTER}
+OWNER_STEP_FILTER = {"step": OWNER_ROUTE_FILTER}
+ASSIGNEE_FILTER = {"assignee_id": {"_eq": "X-Hasura-User-Id"}}
+ORG_PEER_FILTER = {"organization": {"profiles": {"id": {"_eq": "X-Hasura-User-Id"}}}}
 
+
+def drop_user_permission(endpoint: str, admin_secret: str, table_name: str, permission_type: str) -> None:
     try:
         metadata_request(
             endpoint,
             admin_secret,
             {
-                "type": "pg_drop_select_permission",
-                "args": {"source": "default", "table": {"schema": "public", "name": "documents"}, "role": "user"},
+                "type": permission_type,
+                "args": {"source": "default", "table": {"schema": "public", "name": table_name}, "role": "user"},
             },
         )
     except urllib.error.HTTPError:
         pass
+
+
+def apply_permissions(endpoint: str, admin_secret: str) -> None:
+    """Apply user-role permissions for Phase 5 reads and wizard routing inserts."""
+    for table_name in ("route_step_assignees", "route_steps", "document_routes", "profiles", "documents"):
+        drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_select_permission")
+    for table_name in ("documents", "document_routes", "route_steps", "route_step_assignees"):
+        drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_update_permission")
+        drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_insert_permission")
 
     user_permissions = [
         {
@@ -404,7 +438,12 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                 "role": "user",
                 "permission": {
                     "columns": ["id", "organization_id", "display_name", "email", "status"],
-                    "filter": {"id": {"_eq": "X-Hasura-User-Id"}},
+                    "filter": {
+                        "_or": [
+                            {"id": {"_eq": "X-Hasura-User-Id"}},
+                            ORG_PEER_FILTER,
+                        ]
+                    },
                 },
             },
         },
@@ -417,10 +456,27 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                 "permission": {
                     "columns": ["id", "organization_id", "step_id", "assignee_id", "status", "completed_at"],
                     "filter": {
-                        "assignee_id": {"_eq": "X-Hasura-User-Id"},
-                        "status": {"_in": ["pending", "active"]},
+                        "_or": [
+                            {
+                                **ASSIGNEE_FILTER,
+                                "status": {"_in": ["pending", "active"]},
+                            },
+                            OWNER_STEP_FILTER,
+                        ]
                     },
                     "allow_aggregations": True,
+                },
+            },
+        },
+        {
+            "type": "pg_create_insert_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "route_step_assignees"},
+                "role": "user",
+                "permission": {
+                    "check": OWNER_STEP_FILTER,
+                    "columns": ["organization_id", "step_id", "assignee_id", "status"],
                 },
             },
         },
@@ -431,12 +487,34 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                 "table": {"schema": "public", "name": "route_steps"},
                 "role": "user",
                 "permission": {
-                    "columns": ["id", "route_id", "sequence", "action", "status", "due_at"],
+                    "columns": ["id", "route_id", "sequence", "action", "status", "due_at", "completion_rule"],
                     "filter": {
-                        "route_step_assignees": {
-                            "assignee_id": {"_eq": "X-Hasura-User-Id"},
-                        }
+                        "_or": [
+                            {"route_step_assignees": ASSIGNEE_FILTER},
+                            OWNER_ROUTE_FILTER,
+                        ]
                     },
+                },
+            },
+        },
+        {
+            "type": "pg_create_insert_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "route_steps"},
+                "role": "user",
+                "permission": {
+                    "check": OWNER_ROUTE_FILTER,
+                    "columns": [
+                        "organization_id",
+                        "route_id",
+                        "sequence",
+                        "action",
+                        "completion_rule",
+                        "minimum_count",
+                        "status",
+                        "due_at",
+                    ],
                 },
             },
         },
@@ -447,14 +525,32 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                 "table": {"schema": "public", "name": "document_routes"},
                 "role": "user",
                 "permission": {
-                    "columns": ["id", "document_id", "version_id", "mode", "status", "started_at"],
+                    "columns": ["id", "document_id", "version_id", "mode", "status", "started_at", "organization_id"],
                     "filter": {
-                        "route_steps": {
-                            "route_step_assignees": {
-                                "assignee_id": {"_eq": "X-Hasura-User-Id"},
-                            }
-                        }
+                        "_or": [
+                            {"route_steps": {"route_step_assignees": ASSIGNEE_FILTER}},
+                            OWNER_DOCUMENT_FILTER,
+                        ]
                     },
+                },
+            },
+        },
+        {
+            "type": "pg_create_insert_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_routes"},
+                "role": "user",
+                "permission": {
+                    "check": OWNER_DOCUMENT_FILTER,
+                    "columns": [
+                        "organization_id",
+                        "document_id",
+                        "version_id",
+                        "template_id",
+                        "mode",
+                        "status",
+                    ],
                 },
             },
         },

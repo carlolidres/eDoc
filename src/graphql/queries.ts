@@ -9,6 +9,16 @@ export const CURRENT_PROFILE = `
   }
 `
 
+export const ORG_PROFILES = `
+  query OrgProfiles {
+    profiles(order_by: { display_name: asc }) {
+      id
+      display_name
+      email
+    }
+  }
+`
+
 export const DOCUMENTS_LIST = `
   query DocumentsList {
     documents(order_by: { updated_at: desc }) {
@@ -80,6 +90,14 @@ export type CurrentProfileResponse = {
   profiles: Array<{
     id: string
     organization_id: string | null
+    display_name: string
+    email: string
+  }>
+}
+
+export type OrgProfilesResponse = {
+  profiles: Array<{
+    id: string
     display_name: string
     email: string
   }>

@@ -1,5 +1,5 @@
 # Cloudflare Worker secrets for local development. Do not commit real secrets.
-NHOST_JWKS_URL=https://your-nhost-subdomain.auth.your-nhost-region.nhost.run/.well-known/jwks.json
+NHOST_JWKS_URL=https://your-nhost-subdomain.auth.your-nhost-region.nhost.run/v1/.well-known/jwks.json
 HASURA_GRAPHQL_URL=https://your-nhost-subdomain.hasura.your-nhost-region.nhost.run/v1/graphql
 HASURA_ADMIN_SECRET=replace-with-local-secret
 R2_BUCKET_NAME=edoc-dev

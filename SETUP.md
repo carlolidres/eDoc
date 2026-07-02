@@ -41,7 +41,7 @@ Only public frontend values belong in `.env`. Never commit `.env` or `.dev.vars`
 
 | Variable | Source |
 |---|---|
-| `NHOST_JWKS_URL` | `https://<subdomain>.auth.<region>.nhost.run/.well-known/jwks.json` |
+| `NHOST_JWKS_URL` | `https://<subdomain>.auth.<region>.nhost.run/v1/.well-known/jwks.json` |
 | `HASURA_GRAPHQL_URL` | Same Hasura GraphQL URL as frontend |
 | `HASURA_ADMIN_SECRET` | Nhost → Hasura → admin secret (local dev only) |
 
@@ -92,6 +92,28 @@ npx wrangler deploy --config wrangler.toml
 
 6. Verify health: `https://edoc-worker.carlolidres.workers.dev/api/health`
 
+### Link Nhost user to eDoc profile (required for GraphQL + wizard)
+
+Signed-in Nhost users need a matching `profiles` row (`profiles.id` = Nhost auth user UUID).
+
+1. In Nhost dashboard → **Authentication** → **Users**, copy the user UUID and email.
+2. Run (fills `.dev.vars` Hasura admin credentials):
+
+```powershell
+python database/scripts/sync_nhost_profile.py `
+  --user-id "<nhost-user-uuid>" `
+  --email "you@example.com" `
+  --display-name "Your Name"
+```
+
+3. Re-apply Hasura metadata if `document_versions` insert fails:
+
+```powershell
+python database/scripts/setup_hasura_metadata.py
+```
+
+4. Sign in at the app and open **Create document** — the wizard should load your organization context.
+
 ## Run Frontend
 
 ```powershell
@@ -116,6 +138,7 @@ python database/scripts/validate_schema.py
 python database/scripts/generate_schema_map.py
 python database/scripts/apply_nhost_migration.py
 python database/scripts/setup_hasura_metadata.py
+python database/scripts/sync_nhost_profile.py --user-id "<uuid>" --email "you@example.com" --display-name "Your Name"
 ```
 
 ### Manual auth walkthrough
