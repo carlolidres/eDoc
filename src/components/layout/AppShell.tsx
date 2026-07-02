@@ -6,6 +6,7 @@ import { useAuth } from '../../features/auth/AuthProvider'
 import { useTheme } from '../../hooks/useTheme'
 
 function pageTitle(pathname: string) {
+  if (pathname.startsWith('/sign/')) return 'Signing Workspace'
   return navigationItems.find((item) => item.path === pathname)?.label ?? 'Workspace'
 }
 

@@ -194,6 +194,20 @@ def create_relationships(endpoint: str, admin_secret: str) -> None:
             "type": "pg_create_array_relationship",
             "args": {
                 "source": "default",
+                "table": {"schema": "public", "name": "route_steps"},
+                "name": "route_step_actions",
+                "using": {
+                    "foreign_key_constraint_on": {
+                        "table": {"schema": "public", "name": "route_step_actions"},
+                        "column": "step_id",
+                    }
+                },
+            },
+        },
+        {
+            "type": "pg_create_array_relationship",
+            "args": {
+                "source": "default",
                 "table": {"schema": "public", "name": "documents"},
                 "name": "document_access_grants",
                 "using": {

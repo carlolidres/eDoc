@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthProvider'
 import { APP_NAME } from '../config/navigation'
@@ -12,6 +12,11 @@ export function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = (location.state as { from?: Location } | null)?.from?.pathname ?? '/'
+
+  useEffect(() => {
+    if (!auth.authReady || !auth.isAuthenticated) return
+    navigate(from, { replace: true })
+  }, [auth.authReady, auth.isAuthenticated, from, navigate])
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()

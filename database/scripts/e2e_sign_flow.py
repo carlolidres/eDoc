@@ -1,4 +1,4 @@
-"""E2E smoke: upload PDF → sign-step route → preview URL → Worker sign endpoint."""
+"""E2E smoke: upload PDF → sign-step route → preview URL → Worker sign → certificate verify."""
 from __future__ import annotations
 
 import argparse
@@ -418,8 +418,66 @@ def main() -> None:
     if not signed_files:
         raise RuntimeError("No signed document_files row visible after sign.")
 
+    print("13/15 Verify completion certificate issued...")
+    certificate = signed.get("certificate")
+    if not certificate:
+        raise RuntimeError(f"Sign response did not include certificate: {signed}")
+    certificate_id = certificate.get("certificateId")
+    verification_code = certificate.get("verificationCode")
+    if not certificate_id or not verification_code:
+        raise RuntimeError(f"Certificate payload incomplete: {certificate}")
+
+    cert_rows = graphql_request(
+        hasura_url,
+        token,
+        """
+        query CompletionCertificate($documentId: uuid!) {
+          completion_certificates(where: { document_id: { _eq: $documentId } }, limit: 1) {
+            id
+            verification_code
+            issued_at
+            certificate_key
+          }
+          audit_events(
+            where: {
+              document_id: { _eq: $documentId }
+              event_type: { _eq: "certificate.issued" }
+            }
+            order_by: { created_at: desc }
+            limit: 1
+          ) {
+            id
+            event_type
+          }
+        }
+        """,
+        {"documentId": document["id"]},
+    )
+    visible_cert = (cert_rows.get("completion_certificates") or [None])[0]
+    if not visible_cert or visible_cert["id"] != certificate_id:
+        raise RuntimeError(f"Certificate not visible via GraphQL: {cert_rows}")
+    audit_event = (cert_rows.get("audit_events") or [None])[0]
+    if not audit_event:
+        raise RuntimeError("certificate.issued audit event not visible to assignee.")
+
+    print("14/15 Verify public verification endpoint...")
+    verification = request_json(
+        f"{WORKER_URL}/api/verification/{certificate_id}?code={verification_code}",
+    )
+    if verification.get("valid") is not True:
+        raise RuntimeError(f"Verification endpoint did not validate certificate: {verification}")
+    if verification.get("documentTitle") != title:
+        raise RuntimeError(f"Verification title mismatch: {verification}")
+
+    print("15/15 Verify invalid code rejected...")
+    bad_verification = request_json(
+        f"{WORKER_URL}/api/verification/{certificate_id}?code=ZZZZZZZZ",
+    )
+    if bad_verification.get("valid") is not False:
+        raise RuntimeError(f"Invalid verification code was accepted: {bad_verification}")
+
     print(
-        "PASS: E2E sign flow completed.\n"
+        "PASS: E2E sign + certificate flow completed.\n"
         f"  document_id={document['id']}\n"
         f"  version_id={version['id']}\n"
         f"  route_id={route['id']}\n"
@@ -432,7 +490,12 @@ def main() -> None:
         f"  final_pdf_hash={signed.get('finalPdfHash')}\n"
         f"  route_status={signed.get('routeStatus')}\n"
         f"  document_status={signed.get('documentStatus')}\n"
-        f"  signed_files_visible={len(signed_files)}"
+        f"  signed_files_visible={len(signed_files)}\n"
+        f"  certificate_id={certificate_id}\n"
+        f"  verification_code={verification_code}\n"
+        f"  certificate_key={visible_cert.get('certificate_key')}\n"
+        f"  audit_event_id={audit_event.get('id')}\n"
+        f"  verify_document_title={verification.get('documentTitle')}"
     )
 
 

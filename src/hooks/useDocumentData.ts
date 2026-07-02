@@ -11,6 +11,7 @@ import {
 } from '../graphql/queries'
 import type { DashboardMetrics, DocumentListItem, DocumentStatus, InboxTask, RouteAction } from '../types/domain'
 import { dashboardDueDateBounds } from '../utils/dueDateMetrics'
+import { isUuid } from '../utils/uuid'
 
 function formatDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -99,11 +100,13 @@ export function useInboxTasksData() {
 }
 
 export function useInboxAssignment(assignmentId: string | undefined) {
+  const assignmentQueryEnabled = isUuid(assignmentId)
+
   const query = useGraphQLQuery<InboxAssignmentResponse>(
     'inbox-assignment',
     INBOX_ASSIGNMENT,
-    assignmentId ? { id: assignmentId } : undefined,
-    { enabled: Boolean(assignmentId) },
+    assignmentQueryEnabled ? { id: assignmentId } : undefined,
+    { enabled: assignmentQueryEnabled },
   )
   const task = query.data?.route_step_assignees_by_pk
     ? mapInboxAssigneeRow(query.data.route_step_assignees_by_pk)

@@ -115,7 +115,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn: async (email, password) => {
       if (nhost) {
         const result = await nhost.auth.signIn({ email, password })
-        if (result.error) throw new Error(result.error.message)
+        if (result.error) {
+          const alreadySignedIn = result.error.message.toLowerCase().includes('already signed in')
+          if (alreadySignedIn) {
+            const session = nhost.auth.getSession()
+            if (session?.user) {
+              setAccessToken(session.accessToken ?? null)
+              setUser(toAuthUser(session.user))
+              return
+            }
+          }
+          throw new Error(result.error.message)
+        }
         setAccessToken(result.session?.accessToken ?? null)
         setUser(toAuthUser(result.session?.user))
         return
