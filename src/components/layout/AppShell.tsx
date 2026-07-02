@@ -12,9 +12,13 @@ function pageTitle(pathname: string) {
 export function AppShell() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { user, signOut, usesNhost } = useAuth()
+  const { user, signOut, usesNhost, sendVerificationEmail } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const location = useLocation()
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  const [verifyStatus, setVerifyStatus] = useState<string | null>(null)
+  const [verifyLoading, setVerifyLoading] = useState(false)
+  const showVerifyBanner = usesNhost && user && !user.emailVerified && !bannerDismissed
 
   const sidebarClass = ['sidebar', collapsed ? 'collapsed' : '', mobileOpen ? 'open' : ''].filter(Boolean).join(' ')
 
@@ -96,6 +100,35 @@ export function AppShell() {
           </div>
         </header>
         <main className="page">
+          {showVerifyBanner ? (
+            <div className="verify-banner" role="status">
+              <div>
+                <strong>Verify your email</strong>
+                <p>Confirm {user.email} to unlock full workspace access.</p>
+                {verifyStatus ? <p className="form-success">{verifyStatus}</p> : null}
+              </div>
+              <div className="verify-banner-actions">
+                <button
+                  className="button secondary"
+                  type="button"
+                  disabled={verifyLoading}
+                  onClick={() => {
+                    setVerifyLoading(true)
+                    setVerifyStatus(null)
+                    void sendVerificationEmail()
+                      .then(() => setVerifyStatus('Verification email sent.'))
+                      .catch((err: unknown) => setVerifyStatus(err instanceof Error ? err.message : 'Could not send email.'))
+                      .finally(() => setVerifyLoading(false))
+                  }}
+                >
+                  {verifyLoading ? 'Sending...' : 'Resend email'}
+                </button>
+                <button className="icon-button" type="button" aria-label="Dismiss" onClick={() => setBannerDismissed(true)}>
+                  ×
+                </button>
+              </div>
+            </div>
+          ) : null}
           <Outlet />
         </main>
       </div>

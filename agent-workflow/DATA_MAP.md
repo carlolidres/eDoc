@@ -1,6 +1,6 @@
 # Data Map
 
-Last Updated: `[YYYY-MM-DD]`
+Last Updated: `2026-07-01`
 
 ## Purpose
 
@@ -8,266 +8,175 @@ Use this file for SQLite, migration, API data flow, reporting, integrity, author
 
 This is a concise human map. It does not replace executable SQL.
 
+## Two Schema Domains
+
+| Domain | Authoritative SQL | Runtime data | Purpose |
+|---|---|---|---|
+| eDoc application | `database/sqlite/` → PostgreSQL/Nhost | Nhost PostgreSQL + R2 | Document routing, signing, audit |
+| Workflow app (local) | `workflow-app/database/schema.sql` | `workflow-app/data/` (gitignored) | Baseline approval, handoff, agent coordination |
+
+Do not merge these schemas. Cross-link only through Markdown files (`version-0-baseline.md`, handoffs).
+
 ## SQLite Sources
 
 | Path | Role | Editing rule |
 |---|---|---|
-| `database/sqlite/` | Editable, version-controlled schema and migration SQL | Edit here |
-| `workflow-app/database/schema.sql` | Editable, version-controlled SQLite schema for the reusable local workflow app | Edit here for workflow app data changes |
-| `sqlite-out/` | Generated schema map used for fast navigation | Never edit manually |
-
-The authoritative schema is the SQL under `database/sqlite/`. A runtime `.db` file and generated content under `sqlite-out/` are not schema sources of truth.
-
-For the reusable local workflow application, the authoritative schema is `workflow-app/database/schema.sql`. Runtime workflow databases live under `workflow-app/data/` and are not schema sources of truth.
+| `database/sqlite/` | Editable application schema (SQLite-first design) | Edit here first |
+| `database/migrations/` | PostgreSQL migration drafts for Nhost | After SQLite validation |
+| `workflow-app/database/schema.sql` | Workflow app SQLite | Edit for workflow app only |
+| `sqlite-out/` | Generated schema map | Never edit manually |
 
 ## SQLite-First Migration Rule
 
-Build, validate, and stabilize the SQLite database before preparing any Supabase migration.
+Build, validate, and stabilize the SQLite database before preparing any Nhost/PostgreSQL migration.
 
 Required order:
 
-1. Model the tables, primary keys, foreign keys, indexes, triggers, and required seed or fixture data in `database/sqlite/`.
-2. Generate `sqlite-out/` and review the generated table and relationship map for unexpected drops, nullable fields, weak keys, missing indexes, or ambiguous relationships.
-3. Run local SQLite validation against representative data, including foreign-key enforcement, uniqueness rules, required fields, cascade or restrict behavior, and the workflow queries the application depends on.
-4. Record accepted entities, relationships, integrity rules, and validation results in this file and `HANDOFF.md`.
-5. Create Supabase migration SQL only after the SQLite structure is stable and the SQLite-to-Supabase mapping is explicit.
+1. Model baseline entities in `database/sqlite/` per `agent-history/version-0-baseline.md`.
+2. Generate `sqlite-out/` and review relationships, indexes, and constraints.
+3. Run local SQLite validation with representative inserts and workflow queries.
+4. Record accepted entities here and in `HANDOFF.md`.
+5. Create PostgreSQL migrations and Hasura metadata only after SQLite structure is stable.
 
-Supabase is the migration target, not the place to discover the initial schema shape. If SQLite validation fails or relationships are still changing, pause Supabase migration work and fix the SQLite source first.
+## Planned Application Entities (Phase 4)
 
-## Token-Efficient Database Reading Order
+Source: `reference/starter.md` / `version-0-baseline.md`. SQL not yet implemented in `database/sqlite/schema.sql`.
 
-1. Read this file.
-2. Read only the relevant file or section in `sqlite-out/` to identify tables, columns, indexes, triggers, and relationships.
-3. Open only the corresponding SQL files in `database/sqlite/`.
-4. Inspect data-access code only when application behavior is involved.
-5. Read the approved baseline only when architecture, security, audit, retention, roles, workflow, or GxP requirements are affected.
+### Organization and identity
 
-Do not load the full schema, every migration, and every generated map unless a full-schema review is explicitly requested.
+`organizations`, `profiles`, `departments`, `business_units`, `organization_members`, `roles`, `permissions`, `role_permissions`, `user_roles`, `user_delegations`, `user_notification_preferences`, `user_signature_profiles`, `user_sessions`
 
-## Schema-Sync Rule
+### Documents
 
-For every SQLite schema change:
+`documents`, `document_versions`, `document_files`, `document_attachments`, `document_categories`, `document_types`, `document_tags`, `document_tag_assignments`, `document_access_grants`, `document_retention_rules`
 
-1. Modify version-controlled SQL in `database/sqlite/`.
-2. Run `[SQLITE_MAP_COMMAND]`.
-3. Confirm that `sqlite-out/` was regenerated successfully.
-4. Review generated changes for unexpected drops, type changes, relationship changes, missing indexes, or trigger changes.
-5. Run applicable migration and integration checks.
-6. Update this file when entities, relationships, workflow rules, or integrity controls change.
-7. Record the sync result in `HANDOFF.md`.
+### Routing
 
-A schema task is incomplete while editable SQL and generated maps are out of sync.
+`routing_templates`, `routing_template_steps`, `document_routes`, `route_steps`, `route_step_assignees`, `route_step_actions`, `route_step_delegations`, `route_reminders`, `route_escalations`
 
-## Generated Map Inventory
+### Signatures
 
-List only high-value generated outputs.
+`signature_fields`, `signature_events`, `signature_authentication_events`, `completion_certificates`
 
-| Generated path | Covers | Source SQL |
-|---|---|---|
-| `[SQLITE_OUT_FILE_OR_FOLDER]` | `[TABLES_OR_DOMAIN]` | `[DATABASE_SQLITE_SOURCE]` |
+### Collaboration
 
-## Primary Entities
+`document_comments`, `comment_replies`, `comment_mentions`, `notifications`, `notification_deliveries`, `email_templates`
+
+### Compliance and system
+
+`audit_events`, `system_settings`, `security_settings`, `system_logs`, `file_access_logs`, `data_export_logs`
+
+### Planned relationship tree
+
+```text
+organizations
+    ├── departments, business_units, organization_members
+    ├── user_roles → roles → permissions
+    └── documents
+            ├── document_versions → document_files (R2 key + sha256)
+            ├── document_routes → route_steps → route_step_assignees
+            ├── signature_fields → signature_events
+            ├── document_comments
+            └── audit_events (append-only)
+```
+
+### Critical application data rules
+
+- Tenant isolation: `organization_id` on all scoped tables.
+- Never overwrite signed/routed PDFs; new version = new row + new R2 object + new hash.
+- Signatures bind to exactly one `document_version_id`.
+- Superseded versions invalidate pending route actions.
+- `audit_events` append-only; include integrity hash.
+- R2 paths are private; store object keys, not public URLs.
+
+## Workflow App Tables (implemented)
 
 | Entity | Table | Purpose | Primary Key | Source SQL |
 |---|---|---|---|---|
-| Workflow record | `workflow_records` | One logical workflow item for baseline, planning, execution, review, deployment, or maintenance | `id` | `workflow-app/database/schema.sql` |
-| Workflow version | `workflow_versions` | Immutable JSON payload version for a workflow record | `id` | `workflow-app/database/schema.sql` |
-| Approval | `approvals` | User approval, rejection, revision, completion, deployment, or supersede decision | `id` | `workflow-app/database/schema.sql` |
-| Audit event | `audit_events` | Append-only trace of workflow app actions | `id` | `workflow-app/database/schema.sql` |
-| Baseline snapshot | `baseline_snapshots` | Approved baseline Markdown write/restore checkpoint | `id` | `workflow-app/database/schema.sql` |
-| Handoff entry | `handoff_entries` | Submitted UI/UX feedback (Phase 2) or bug report (Phase 3) converted into an agent-executable queue item | `id` | `workflow-app/database/schema.sql` |
-| Selected element | `selected_elements` | Compact inspected UI element context attached to a handoff entry | `id` | `workflow-app/database/schema.sql` |
-| Attachment | `attachments` | Screenshot/file attached to a handoff entry | `id` | `workflow-app/database/schema.sql` |
+| Workflow record | `workflow_records` | Baseline/planning/execution workflow items | `id` | `workflow-app/database/schema.sql` |
+| Workflow version | `workflow_versions` | Immutable JSON payload versions | `id` | same |
+| Approval | `approvals` | User approval decisions | `id` | same |
+| Audit event | `audit_events` | Append-only workflow app trace | `id` | same |
+| Baseline snapshot | `baseline_snapshots` | Approved baseline Markdown checkpoints | `id` | same |
+| Project brief | `project_briefs` | Conversational project intake | `id` | same |
+| Handoff entry | `handoff_entries` | UI/UX feedback and debugging queue items | `id` | same |
+| Selected element | `selected_elements` | Inspected UI context for handoff | `id` | same |
+| Attachment | `attachments` | Files linked to brief or handoff | `id` | same |
 
-## Core Relationships
+### Workflow app relationships
 
 ```text
 workflow_records
-    ├── workflow_versions
-    ├── comments
-    ├── approvals
-    ├── audit_events
-    └── baseline_snapshots
-
-handoff_entries
-    ├── selected_elements
-    ├── attachments
-    └── baseline_snapshot_id → baseline_snapshots (links each item to the active approved baseline)
+    ├── workflow_versions, comments, approvals, audit_events, baseline_snapshots
+project_briefs → baseline_record_id → workflow_records
+handoff_entries → selected_elements, attachments, baseline_snapshot_id
 ```
 
-## Workflow App Tables
-
-### `workflow_records`
-
-Purpose: Stores the current state of each workflow item.
-
-Relationships:
-
-- Current version points to `workflow_versions.id`.
-- Child rows in comments, approvals, audit events, and baseline snapshots reference the record.
-
-### `workflow_versions`
-
-Purpose: Stores immutable version payloads as JSON so approved records are not silently overwritten.
-
-Key rules:
-
-- Updates and deletes are blocked by SQLite triggers.
-- Editing an approved record creates a new draft version.
-
-### `approvals`
-
-Purpose: Records user decisions required before execution or deployment proceeds.
-
-Key rules:
-
-- Decisions use the approved workflow statuses.
-- Project baseline approval writes `agent-history/version-0-baseline.md` with a backup.
-
-### `audit_events`
-
-Purpose: Stores append-only workflow traceability.
-
-Key rules:
-
-- Updates and deletes are blocked by SQLite triggers.
-- Events record actor, timestamp, record, version, event type, and JSON details.
-
-### `baseline_snapshots`
-
-Purpose: Tracks approved baseline Markdown generations and restore points.
-
-Key rules:
-
-- Only one snapshot is active at a time.
-- Restore creates a backup of the current baseline before replacing it.
-
-### `handoff_entries`
-
-Purpose: Stores each submitted UI/UX feedback item (`phase = 'feedback'`) or bug report (`phase = 'bug'`) as an agent-executable queue item.
-
-Key rules:
-
-- `reference_id` is human-readable and unique (`FB-0001`, `BUG-0001`).
-- `content_hash` blocks duplicates of still-open items (status not `completed`/`rejected`).
-- `status` lifecycle: `pending`, `accepted`, `in_progress`, `completed`, `rejected`, `needs_clarification`.
-- `baseline_snapshot_id` links the item to the active approved baseline at submission time.
-- Every submission and status change writes an `audit_events` row and regenerates `agent-workflow/handoff-queue.md`.
-
-### `selected_elements`
-
-Purpose: Stores compact inspected UI element context (route, type, visible text, stable selector, attributes, component, parent context, dimensions) for a handoff entry. Cascades on entry delete.
-
-### `attachments`
-
-Purpose: Stores screenshot/file references for a handoff entry. Files are saved under `workflow-app/data/attachments/<entry-id>/` (gitignored runtime state); the DB stores the relative path and an optional annotation. Cascades on entry delete.
-
-## Key Tables
-
-### `[PRIMARY_TABLE]`
-
-Purpose: `[PURPOSE]`
-
-Source SQL: `[DATABASE_SQLITE_PATH]`
-
-| Field | Type | Rule |
-|---|---|---|
-| `[FIELD_1]` | `[TYPE]` | `[BUSINESS_OR_VALIDATION_RULE]` |
-| `[FIELD_2]` | `[TYPE]` | `[BUSINESS_OR_VALIDATION_RULE]` |
-| `[STATUS_FIELD]` | `[TYPE]` | `[ALLOWED_STATUSES]` |
-| `[TARGET_DATE_FIELD]` | `[TYPE]` | `[DATE_OR_PRIORITY_RULE]` |
-
-Relationships:
-
-- `[RELATIONSHIP_1]`
-- `[RELATIONSHIP_2]`
-
-### `[USER_PROFILE_TABLE]`
-
-Purpose: Stores application profile and authorization metadata linked to the authentication identity.
-
-Key rules:
-
-- Duplicate profiles are prohibited.
-- Deactivated users must not retain active access.
-- Authentication identities and application profiles must remain synchronized.
-
-### `[ROLE_PERMISSION_TABLE]`
-
-Purpose: Maps roles or users to modules, menus, and permitted actions.
-
-Key rules:
-
-- UI visibility does not replace trusted-layer authorization.
-- Direct-route access must enforce the same permissions.
-- Permission changes must be auditable.
-- New modules must register permission keys centrally.
-
-### `[AUDIT_LOG_TABLE]`
-
-Purpose: Stores protected audit records for critical activities.
-
-Required information:
-
-- record identifier;
-- module or table;
-- action;
-- changed field, when applicable;
-- old and new values;
-- responsible user;
-- timestamp;
-- reason or comment, when required.
-
-Audit records must not contain passwords, tokens, private keys, or restricted secrets.
-
-## Status and Workflow Map
+## Status and Workflow Map (application — planned)
 
 | Stage | Allowed statuses | Owner | Exit condition |
 |---|---|---|---|
-| `[STAGE_1]` | `[STATUS_VALUES]` | `[ROLE_OR_TEAM]` | `[CONDITION]` |
-| `[STAGE_2]` | `[STATUS_VALUES]` | `[ROLE_OR_TEAM]` | `[CONDITION]` |
-| `[STAGE_3]` | `[STATUS_VALUES]` | `[ROLE_OR_TEAM]` | `[CONDITION]` |
+| Draft | `draft`, `preparing` | Document owner | Upload + preparation complete |
+| Ready | `ready_for_routing` | Document owner | Route configured and sent |
+| Active route | `in_routing`, `awaiting_action` | Assignees | All required steps complete or terminal action |
+| Terminal | `completed`, `rejected`, `cancelled`, `expired` | System/owner | No further route actions |
+| Archive | `archived` | Admin/controller | Retention policy applied |
 
-## Date and Priority Rules
+## Document status values (planned)
 
-- Primary driver date: `[DRIVER_DATE_FIELD]`
-- Overdue: `[OVERDUE_RULE]`
-- Critical: `[CRITICAL_RULE]`
-- High: `[HIGH_RULE]`
-- Moderate: `[MODERATE_RULE]`
-- Low: `[LOW_RULE]`
-- Completed: `[COMPLETED_RULE]`
+```text
+draft | preparing | ready_for_routing | in_routing | awaiting_action
+returned | rejected | completed | cancelled | expired | archived
+```
 
-## Data Ownership
+## Route advancement rules
+
+Implemented in `src/utils/routingRules.ts` (unit-tested); must align with Worker transaction logic when backend is built.
+
+1. Sequential steps activate in order.
+2. Parallel groups: all, any, majority, or minimum count.
+3. Rejection/return triggers revision cycle or termination per configuration.
+4. Delegation records original and delegate.
+5. Overrides require reason + audit event.
+
+## Data Ownership (application — planned)
 
 | Data area | Create | Edit | Approve | View |
 |---|---|---|---|---|
-| `[AREA_1]` | `[ROLE]` | `[ROLE]` | `[ROLE]` | `[ROLES]` |
-| `[AREA_2]` | `[ROLE]` | `[ROLE]` | `[ROLE]` | `[ROLES]` |
+| Documents | Owner, controller | Owner (draft/returned) | Assignees per step | Role-granted |
+| Routes/templates | Owner, admin | Owner, admin | Baseline policy | Org members |
+| Audit/report | System | — | — | Auditor, admin |
+| Admin settings | Org admin, super admin | Admin | — | Admin |
+
+## API Data Flow
+
+```text
+Browser (JWT)
+    ├── Hasura GraphQL → authorized reads/writes (RLS permissions)
+    └── Worker API (JWT) → R2 presign, hash, sign, advance, certificate, notify
+            └── PostgreSQL (service role) + R2 (private)
+```
+
+Privileged writes that affect signatures, immutable PDFs, or route state must not use client-only logic.
 
 ## Migration Rules
 
-- Migration source: validated SQLite schema in `database/sqlite/`
-- Workflow app migration source: validated SQLite schema in `workflow-app/database/schema.sql`
-- Supabase migration gate: do not create or apply Supabase migrations until SQLite table structures, constraints, indexes, and relationships pass local validation and are documented above.
-- Mapping file: `[DATA_MAPPING_PATH]`
-- Duplicate key: `[UNIQUE_OR_NATURAL_KEY]`
-- Re-import behavior: `[SKIP | UPDATE | UPSERT | REJECT]`
-- Invalid-row behavior: `[RULE]`
-- Reconciliation method: `[METHOD]`
-- Rollback method: `[METHOD]`
+- Application migration source: validated `database/sqlite/` → `database/migrations/`
+- Workflow app source: `workflow-app/database/schema.sql` only
+- Nhost/PostgreSQL gate: no migration until SQLite validation passes
+- Mapping file: `DATABASE.md` (update when mapping is explicit)
+- Duplicate keys: natural keys per entity (e.g., org-scoped reference numbers)
+- Rollback: version-controlled down migrations; R2 objects versioned separately
 
 ## Data Integrity Rules
 
-- Use SQLite constraints for enforceable invariants.
-- Use transactions for multi-step writes that must succeed or fail together.
-- Use version-controlled migrations for schema changes.
-- Validate required values before persistence and at trust boundaries.
-- Preserve foreign-key integrity and enable foreign-key enforcement where required.
-- Prefer soft deletion when regulated or historical records must remain traceable.
-- Protect audit history from update and deletion.
-- Do not expose privileged credentials or unrestricted database operations to an untrusted client.
+- SQLite/PostgreSQL constraints for enforceable invariants
+- Transactions for multi-step route advancement and signing
+- Append-only audit triggers where applicable
+- Foreign-key enforcement enabled
+- No privileged credentials in client code
+- File access logged for preview/download via Worker
 
 ## Update Rule
 
-Update this file only when important entities, relationships, workflows, migration rules, or integrity controls change. Routine column additions that do not affect navigation or business meaning may be captured by regenerated `sqlite-out/` and the handoff alone.
+Update this file when application entities move from planned to implemented SQL, or when workflow app schema, relationships, or integrity controls change.

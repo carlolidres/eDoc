@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono'
 import { z } from 'zod'
+import { verifyBearerToken } from './auth'
 
 type Bindings = {
   EDOC_R2: R2Bucket
@@ -34,14 +35,25 @@ function jsonError(c: AppContext, status: ErrorStatus, code: string, message: st
 async function requireAuth(c: AppContext) {
   const authorization = c.req.header('authorization')
   if (!authorization?.startsWith('Bearer ')) return null
-  return authorization.slice('Bearer '.length)
+
+  const token = authorization.slice('Bearer '.length)
+  const jwksUrl = c.env.NHOST_JWKS_URL
+  if (!jwksUrl || jwksUrl.includes('your-')) {
+    return token.length > 0 ? { sub: 'dev-unverified' } : null
+  }
+
+  try {
+    return await verifyBearerToken(token, jwksUrl)
+  } catch {
+    return null
+  }
 }
 
 app.get('/api/health', (c) => c.json({ ok: true, service: 'edoc-worker', requestId: requestId(c) }))
 
 app.post('/api/files/upload-url', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
 
   const parsed = uploadUrlSchema.safeParse(await c.req.json().catch(() => null))
   if (!parsed.success) return jsonError(c, 400, 'VALIDATION_FAILED', 'Upload request is invalid.')
@@ -55,60 +67,61 @@ app.post('/api/files/upload-url', async (c) => {
     method: 'PUT',
     uploadUrl: null,
     note: 'Wire R2 presigned upload generation here. Private object path has been reserved.',
+    userId: claims.sub,
   })
 })
 
 app.post('/api/files/complete-upload', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), status: 'accepted' })
 })
 
 app.get('/api/files/:fileId/preview-url', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), previewUrl: null, expiresInSeconds: 300 })
 })
 
 app.get('/api/files/:fileId/download-url', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), downloadUrl: null, expiresInSeconds: 300 })
 })
 
 app.post('/api/documents/:documentId/hash', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), hash: null, algorithm: 'SHA-256' })
 })
 
 app.post('/api/documents/:documentId/sign', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
 })
 
 app.post('/api/documents/:documentId/certificate', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
 })
 
 app.post('/api/routes/:routeId/advance', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
 })
 
 app.post('/api/routes/:routeId/remind', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
 })
 
 app.post('/api/notifications/send', async (c) => {
-  const token = await requireAuth(c)
-  if (!token) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
 })
 

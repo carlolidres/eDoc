@@ -3,7 +3,7 @@ name: Deploy frontend to GitHub Pages
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [master]
 
 permissions:
   contents: read
@@ -28,6 +28,13 @@ jobs:
       - run: npm run type-check
       - run: npm run test
       - run: npm run build
+        env:
+          VITE_GITHUB_PAGES_BASE: ${{ vars.VITE_GITHUB_PAGES_BASE }}
+          VITE_NHOST_SUBDOMAIN: ${{ vars.VITE_NHOST_SUBDOMAIN }}
+          VITE_NHOST_REGION: ${{ vars.VITE_NHOST_REGION }}
+          VITE_HASURA_GRAPHQL_URL: ${{ vars.VITE_HASURA_GRAPHQL_URL }}
+          VITE_WORKER_API_URL: ${{ vars.VITE_WORKER_API_URL }}
+          VITE_SESSION_TIMEOUT_MINUTES: ${{ vars.VITE_SESSION_TIMEOUT_MINUTES }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

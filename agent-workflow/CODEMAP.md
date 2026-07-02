@@ -1,6 +1,6 @@
 # Code Map
 
-Last Updated: `[YYYY-MM-DD]`
+Last Updated: `2026-07-01`
 
 ## Purpose
 
@@ -12,91 +12,108 @@ Do not duplicate database schema details here. Database work belongs in `DATA_MA
 
 | Path | Responsibility |
 |---|---|
-| `workflow-app/server.py` | Local workflow app HTTP server, JSON API, SQLite access, baseline Markdown generation, handoff queue generation, OpenAI improve proxy, preview proxy, and startup initialization |
-| `workflow-app/static/index.html` | Workflow app browser entry point (dashboard, baseline, UI/UX feedback, bug reports, handoff queue, submissions, settings, and stage views) |
-| `[ROOT_COMPONENT_PATH]` | `[ROOT_LAYOUT_ROUTING_OR_PROVIDER_ROLE]` |
-| `[ROUTE_CONFIG_PATH]` | `[ROUTE_DEFINITIONS]` |
+| `src/main.tsx` | React DOM bootstrap |
+| `src/app/App.tsx` | HashRouter, routes, auth and theme providers |
+| `index.html` | Vite HTML entry |
+| `worker/src/index.ts` | Cloudflare Worker API (Hono); privileged backend operations |
+| `worker/src/auth.ts` | JWKS JWT verification for Worker routes |
+| `workflow-app/server.py` | Local workflow app HTTP server, SQLite, baseline/handoff APIs |
 
 ## Pages and Major Modules
 
 | Module | Path | Responsibility |
 |---|---|---|
-| Workflow app UI | `workflow-app/static/app.js` | Dashboard, baseline/stage forms with draft badges and revision history, UI/UX feedback composer, bug reports, handoff queue, submission history, settings, AI improve controls, preview/inspector wiring, comments, version history, audit trail, and baseline restore UI |
-| Preview inspector | `workflow-app/static/inspector.js` | Injected into the proxied target page; hover-highlight, click-select, stable-locator generation, compact element context, and best-effort console/network capture posted to the parent app |
-| Workflow app styles | `workflow-app/static/styles.css` | Local-only responsive layout, composer, badges, chips, thumbnails, AI controls, and queue styling |
-| `[MODULE_2]` | `[PATH]` | `[RESPONSIBILITY]` |
-| `[MODULE_3]` | `[PATH]` | `[RESPONSIBILITY]` |
+| Dashboard | `src/pages/DashboardPage.tsx` | KPI cards, awaiting action, activity (placeholder → GraphQL) |
+| Inbox | `src/pages/InboxPage.tsx` | Assigned review/approve/sign/ack tasks |
+| Documents | `src/pages/DocumentsPage.tsx` | Document lists, filters, status views |
+| Create document | `src/pages/CreateDocumentPage.tsx` | Multi-step creation wizard scaffold |
+| Routing templates | `src/pages/RoutingTemplatesPage.tsx` | Reusable route templates |
+| Signing workspace | `src/pages/SigningWorkspacePage.tsx` | PDF viewer, fields, route actions |
+| Reports | `src/pages/ReportsPage.tsx` | Reporting and export scaffold |
+| Admin | `src/pages/AdminPage.tsx` | Users, roles, org settings scaffold |
+| Auth pages | `src/pages/LoginPage.tsx`, `ResetPasswordPage.tsx`, `ChangePasswordPage.tsx`, `VerifyEmailPage.tsx` | Sign-in, password reset/change, email verification |
+| Workflow app UI | `workflow-app/static/app.js` | Brief, baseline, feedback, debugging, handoff queue |
 
 ## Shared Components
 
 | Path | Responsibility |
 |---|---|
-| `[LAYOUT_COMPONENTS_PATH]` | `[SIDEBAR_HEADER_SHELL_OR_NAVIGATION]` |
-| `[FORM_COMPONENTS_PATH]` | `[REUSABLE_FORM_CONTROLS]` |
-| `[TABLE_COMPONENTS_PATH]` | `[REUSABLE_TABLES_FILTERS_AND_PAGINATION]` |
-| `[CHART_COMPONENTS_PATH]` | `[REUSABLE_DASHBOARD_CHARTS]` |
-| `[FEEDBACK_COMPONENTS_PATH]` | `[MODALS_ALERTS_TOASTS_LOADING_AND_EMPTY_STATES]` |
+| `src/components/layout/AppShell.tsx` | Sidebar, header, collapse, mobile nav (reference-aligned) |
+| `src/components/ui/EmptyState.tsx` | Empty list/state presentation |
+| `src/components/ui/StatusBadge.tsx` | Document/route status badges |
+| `workflow-app/static/inspector.js` | Preview element selector for UI/UX feedback |
 
 ## Services and Data Access
 
 | Path | Responsibility |
 |---|---|
-| `[AUTH_SERVICE_PATH]` | `[AUTHENTICATION_AND_SESSION_OPERATIONS]` |
-| `workflow-app/server.py` | SQLite connection, workflow record/version operations, comments, approvals, audit events, baseline snapshots, and restore operations |
-| `workflow-app/database/schema.sql` | Workflow app SQLite tables, indexes, constraints, and append-only triggers |
-| `workflow-app/server.py` | Audit event handling for workflow app actions |
-| `[NOTIFICATION_SERVICE_PATH]` | `[NOTIFICATION_OPERATIONS]` |
+| `src/lib/nhost.ts` | Nhost client configuration |
+| `src/lib/graphql.ts` | Hasura GraphQL client factory |
+| `src/lib/authRedirect.ts` | HashRouter redirect URLs for Nhost auth callbacks |
+| `src/lib/workerApi.ts` | Authenticated Worker API calls |
+| `src/lib/env.ts` | Public `VITE_` environment validation |
+| `src/features/auth/AuthProvider.tsx` | Auth context, session, inactivity timeout, verification email |
+| `src/features/auth/ProtectedRoute.tsx` | Route guard without auth flash |
+| `src/data/placeholderData.ts` | Temporary mock lists (replace with GraphQL) |
+| `workflow-app/database/schema.sql` | Workflow app SQLite schema |
 
 ## State, Hooks, Utilities, and Types
 
 | Path | Responsibility |
 |---|---|
-| `[STATE_PATH]` | `[GLOBAL_OR_FEATURE_STATE]` |
-| `[HOOKS_PATH]` | `[SHARED_HOOKS]` |
-| `[UTILITIES_PATH]` | `[PURE_HELPER_FUNCTIONS]` |
-| `[VALIDATION_PATH]` | `[VALIDATION_SCHEMAS_OR_RULES]` |
-| `[TYPES_PATH]` | `[SHARED_TYPES_AND_INTERFACES]` |
+| `src/hooks/useTheme.tsx` | Light/dark theme toggle |
+| `src/hooks/useGraphQLClient.ts` | GraphQL client bound to auth access token |
+| `src/hooks/useGraphQLQuery.ts` | TanStack Query wrapper for GraphQL requests |
+| `src/utils/routingRules.ts` | Sequential/parallel routing logic |
+| `src/utils/fileValidation.ts` | Upload MIME, size, hash validation |
+| `src/types/domain.ts` | Shared domain types |
+| `src/config/navigation.ts` | Sidebar nav items and routes |
 
 ## Configuration
 
 | Path | Responsibility |
 |---|---|
-| `workflow-app/config.example.json` | Reusable relative-path workflow app configuration template |
-| `[PERMISSIONS_CONFIG_PATH]` | `[ROLES_MENUS_AND_ACTION_PERMISSIONS]` |
-| `[STATUS_CONFIG_PATH]` | `[STATUS_PRIORITY_OR_WORKFLOW_CONSTANTS]` |
-| `[ENV_CONFIG_PATH]` | `[ENVIRONMENT_CONFIGURATION]` |
-| `[BUILD_CONFIG_PATH]` | `[BUILD_AND_HOSTING_CONFIGURATION]` |
-| `[SQLITE_MAP_CONFIG_PATH]` | `Generates schema navigation output in sqlite-out/` |
+| `vite.config.ts` | Vite build; GitHub Pages base path |
+| `worker/wrangler.toml` | Worker deployment and bindings |
+| `.env.example` | Frontend public env template |
+| `.dev.vars.example` | Worker local secrets template |
+| `workflow-app/config.example.json` | Workflow app path configuration |
+| `eslint.config.js`, `playwright.config.ts` | Lint and E2E configuration |
 
 ## Tests
 
 | Path | Responsibility |
 |---|---|
-| `workflow-app/scripts/validate_schema.py` | Validates workflow app SQLite schema, relationships, immutability triggers, and representative rows |
-| `workflow-app/scripts/smoke_test.py` | Exercises workflow app create, approve, comment, revise, baseline snapshot, restore, dashboard, and audit flows |
-| `[UNIT_TEST_PATH]` | `[UNIT_TESTS]` |
-| `[INTEGRATION_TEST_PATH]` | `[INTEGRATION_TESTS]` |
-| `[E2E_TEST_PATH]` | `[END_TO_END_TESTS]` |
-| `[SMOKE_TEST_PATH]` | `[SMOKE_OR_DEPLOYMENT_VERIFICATION]` |
+| `src/utils/routingRules.test.ts` | Routing rule unit tests |
+| `src/utils/fileValidation.test.ts` | File validation unit tests |
+| `tests/e2e/app.spec.ts` | Playwright E2E scaffold |
+| `workflow-app/scripts/validate_schema.py` | Workflow SQLite schema validation |
+| `workflow-app/scripts/smoke_test.py` | Workflow app end-to-end smoke test |
+
+## Reference Folders (local; do not edit)
+
+| Path | Use |
+|---|---|
+| `reference/src` | Primary UI/layout reference |
+| `reference/documenso-main/documenso-main` | Functional/signing workflow reference |
+| `reference/starter.md` | Authoritative starter requirements |
 
 ## Editing Guidance
 
-- Add new pages under: `[PAGES_PATH]`
-- Add reusable UI under: `[SHARED_COMPONENTS_PATH]`
-- Add feature-specific UI under: `[FEATURE_COMPONENTS_PATH]`
-- Add database access under: `[SQLITE_DATA_ACCESS_PATH]`
-- Keep workflow app changes inside `workflow-app/` unless updating workflow documentation or generated baseline Markdown.
-- Add editable schema or migration SQL under: `database/sqlite/`
-- Add workflow app schema changes under: `workflow-app/database/schema.sql`
-- Do not manually edit generated maps under: `sqlite-out/`
-- Add shared types under: `[TYPES_PATH]`
-- Add tests beside the feature or under: `[TEST_PATH]`
+- Add new pages under: `src/pages/`
+- Add reusable UI under: `src/components/ui/` or `src/components/layout/`
+- Add feature logic under: `src/features/<feature>/`
+- Add Worker routes/services under: `worker/src/`
+- Add editable application schema under: `database/sqlite/`
+- Add workflow app schema under: `workflow-app/database/schema.sql`
+- Do not manually edit: `sqlite-out/`, `reference/`
+- Add tests beside utilities or under: `tests/`
 
 ## Important Boundaries
 
-- Presentation components must not bypass `[DATA_ACCESS_LAYER]`.
-- Protected routes must use `[ROUTE_GUARD_OR_PERMISSION_LAYER]`.
-- Permission checks must be enforced in both the UI and trusted data layer.
-- Reuse existing code before adding helpers or abstractions.
-- Generated files are skipped unless the task explicitly needs them.
-- Update this map only when important implementation paths are added, moved, or renamed.
+- Presentation components must not bypass GraphQL/Worker APIs for privileged operations.
+- Protected routes must use `ProtectedRoute` and server-side permission checks.
+- Permission checks must be enforced in Hasura, Worker, and UI layers.
+- Browser code must not hold R2 keys, admin secrets, or email API keys.
+- Reuse existing scaffold before adding abstractions or dependencies.
+- Update this map when important paths are added, moved, or renamed.

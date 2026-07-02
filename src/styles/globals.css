@@ -80,6 +80,12 @@ h3 { color: var(--brand-dark); }
 .page-header p { max-width: 760px; }
 .button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 15px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); text-decoration: none; font-weight: 800; }
 .button.primary { border-color: var(--brand); background: var(--brand); color: #fff; }
+.button.secondary { border-color: var(--border); background: color-mix(in srgb, var(--brand) 8%, var(--surface)); }
+.text-link { color: var(--brand); font-weight: 700; text-decoration: none; }
+.text-link:hover { text-decoration: underline; }
+.verify-banner { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--warning) 35%, var(--border)); border-radius: 10px; background: color-mix(in srgb, var(--warning) 10%, var(--surface)); }
+.verify-banner p { margin: 4px 0 0; color: var(--muted); }
+.verify-banner-actions { display: flex; align-items: center; gap: 8px; }
 .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 12px; }
 .metric-card, .panel { border: 1px solid var(--border); border-radius: 8px; background: var(--surface); box-shadow: var(--shadow); }
 .metric-card { display: grid; gap: 8px; padding: 16px; }

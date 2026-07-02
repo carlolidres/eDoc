@@ -1,5 +1,5 @@
 import { FormEvent, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../features/auth/AuthProvider'
 import { APP_NAME } from '../config/navigation'
 
@@ -58,6 +58,11 @@ export function LoginPage() {
           <button className="button primary" type="submit" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
+          {auth.usesNhost ? (
+            <Link className="text-link" to="/reset-password">
+              Forgot password?
+            </Link>
+          ) : null}
           {!auth.usesNhost ? <small>Development mode accepts any email and password and stores the session in this browser tab only.</small> : null}
         </form>
       </section>
