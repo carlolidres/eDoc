@@ -121,3 +121,136 @@ export async function hashR2Object(bucket: R2Bucket, objectKey: string) {
   if (!object) throw new Error('Uploaded file was not found in storage.')
   return toSha256Hex(await object.arrayBuffer())
 }
+
+type RoutingMode = 'sequential' | 'parallel' | 'mixed'
+
+type RouteStepRow = {
+  id: string
+  sequence: number
+  status: string
+}
+
+function getInitialActiveStepIds(mode: RoutingMode, steps: RouteStepRow[]): string[] {
+  const ordered = [...steps].sort((a, b) => a.sequence - b.sequence)
+  if (mode === 'parallel') {
+    return ordered.filter((step) => step.status === 'pending').map((step) => step.id)
+  }
+  const firstPending = ordered.find((step) => step.status === 'pending')
+  return firstPending ? [firstPending.id] : []
+}
+
+export async function startDocumentRoute(
+  env: HasuraEnv,
+  routeId: string,
+  userId: string,
+  requestId: string,
+) {
+  const data = await hasuraAdminRequest<{
+    document_routes_by_pk: {
+      id: string
+      status: string
+      mode: RoutingMode
+      organization_id: string
+      document_id: string
+      version_id: string
+      document: { owner_id: string; status: string } | null
+      route_steps: RouteStepRow[]
+    } | null
+  }>(
+    env,
+    `query RouteForStart($id: uuid!) {
+      document_routes_by_pk(id: $id) {
+        id
+        status
+        mode
+        organization_id
+        document_id
+        version_id
+        document {
+          owner_id
+          status
+        }
+        route_steps(order_by: { sequence: asc }) {
+          id
+          sequence
+          status
+        }
+      }
+    }`,
+    { id: routeId },
+  )
+
+  const route = data.document_routes_by_pk
+  if (!route) throw new Error('Route was not found.')
+  if (!route.document) throw new Error('Route document was not found.')
+  if (route.document.owner_id !== userId) throw new Error('You are not authorized to start this route.')
+  if (route.status !== 'draft') throw new Error('Only draft routes can be started.')
+  if (route.document.status !== 'ready_for_routing') {
+    throw new Error('Document must be ready for routing before the route can start.')
+  }
+  if (!route.route_steps.length) throw new Error('Route has no steps.')
+
+  const activeStepIds = getInitialActiveStepIds(route.mode, route.route_steps)
+  if (!activeStepIds.length) throw new Error('Route has no pending steps to activate.')
+
+  const startedAt = new Date().toISOString()
+
+  await hasuraAdminRequest(
+    env,
+    `mutation StartRoute(
+      $routeId: uuid!
+      $documentId: uuid!
+      $startedAt: timestamptz!
+      $stepIds: [uuid!]!
+      $audit: audit_events_insert_input!
+    ) {
+      update_document_routes_by_pk(
+        pk_columns: { id: $routeId }
+        _set: { status: "active", started_at: $startedAt }
+      ) {
+        id
+      }
+      update_documents_by_pk(pk_columns: { id: $documentId }, _set: { status: "in_routing" }) {
+        id
+      }
+      update_route_steps(where: { id: { _in: $stepIds } }, _set: { status: "active" }) {
+        affected_rows
+      }
+      update_route_step_assignees(
+        where: { step_id: { _in: $stepIds }, status: { _eq: "pending" } }
+        _set: { status: "active" }
+      ) {
+        affected_rows
+      }
+      insert_audit_events_one(object: $audit) {
+        id
+      }
+    }`,
+    {
+      routeId,
+      documentId: route.document_id,
+      startedAt,
+      stepIds: activeStepIds,
+      audit: {
+        organization_id: route.organization_id,
+        user_id: userId,
+        event_type: 'route.started',
+        entity_type: 'document_route',
+        entity_id: routeId,
+        document_id: route.document_id,
+        version_id: route.version_id,
+        previous_value: { route_status: 'draft', document_status: route.document.status },
+        new_value: { route_status: 'active', document_status: 'in_routing', active_step_ids: activeStepIds },
+        request_id: requestId,
+        source: 'worker',
+      },
+    },
+  )
+
+  return {
+    routeId,
+    documentId: route.document_id,
+    activeStepIds,
+    status: 'active' as const,
+  }
+}

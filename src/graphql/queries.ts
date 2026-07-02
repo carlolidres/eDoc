@@ -54,7 +54,10 @@ export const DASHBOARD_METRICS = `
       aggregate { count }
     }
     awaitingMyAction: route_step_assignees_aggregate(
-      where: { status: { _in: ["pending", "active"] } }
+      where: {
+        status: { _eq: "active" }
+        step: { status: { _eq: "active" } }
+      }
     ) {
       aggregate { count }
     }
@@ -64,7 +67,10 @@ export const DASHBOARD_METRICS = `
 export const INBOX_TASKS = `
   query InboxTasks {
     route_step_assignees(
-      where: { status: { _in: ["pending", "active"] } }
+      where: {
+        status: { _eq: "active" }
+        step: { status: { _eq: "active" } }
+      }
       order_by: { completed_at: asc_nulls_first }
     ) {
       id

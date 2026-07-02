@@ -24,3 +24,15 @@ export async function workerFetch<T>(path: string, init: RequestInit = {}, acces
   }
   return (await response.json()) as T
 }
+
+export interface StartRouteResponse {
+  requestId: string
+  routeId: string
+  documentId: string
+  activeStepIds: string[]
+  status: 'active'
+}
+
+export function startDocumentRoute(routeId: string, accessToken: string) {
+  return workerFetch<StartRouteResponse>(`/api/routes/${routeId}/start`, { method: 'POST' }, accessToken)
+}

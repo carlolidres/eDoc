@@ -21,6 +21,7 @@ import {
   requestUploadUrl,
   uploadPdfToWorker,
 } from '../lib/documentUpload'
+import { startDocumentRoute } from '../lib/workerApi'
 import type { RouteAction } from '../types/domain'
 import { validatePdfFile } from '../utils/fileValidation'
 
@@ -81,6 +82,7 @@ export function CreateDocumentPage() {
   const [routeSteps, setRouteSteps] = useState<RouteStepDraft[]>([newRouteStep()])
   const [isSavingRoute, setIsSavingRoute] = useState(false)
   const [routeSaved, setRouteSaved] = useState(false)
+  const [routeStarted, setRouteStarted] = useState(false)
 
   const organizationId = profile?.organization_id ?? null
   const canUseWizard = usesNhost && Boolean(organizationId) && Boolean(accessToken)
@@ -221,7 +223,6 @@ export function CreateDocumentPage() {
     try {
       const route = await createRoute.mutateAsync({
         object: {
-          id: crypto.randomUUID(),
           organization_id: organizationId,
           document_id: documentId,
           version_id: versionId,
@@ -229,7 +230,6 @@ export function CreateDocumentPage() {
           status: 'draft',
           route_steps: {
             data: routeSteps.map((step, index) => ({
-              id: crypto.randomUUID(),
               organization_id: organizationId,
               sequence: index + 1,
               action: step.action,
@@ -239,7 +239,6 @@ export function CreateDocumentPage() {
               route_step_assignees: {
                 data: [
                   {
-                    id: crypto.randomUUID(),
                     organization_id: organizationId,
                     assignee_id: step.assigneeId,
                     status: 'pending',
@@ -256,7 +255,11 @@ export function CreateDocumentPage() {
       const updated = await updateStatus.mutateAsync({ id: documentId, status: 'ready_for_routing' })
       if (!updated.update_documents_by_pk) throw new Error('Document status was not updated.')
 
+      if (!accessToken) throw new Error('Sign in again to start the route.')
+      await startDocumentRoute(route.insert_document_routes_one.id, accessToken)
+
       setRouteSaved(true)
+      setRouteStarted(true)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Could not save routing.')
     } finally {
@@ -438,11 +441,16 @@ export function CreateDocumentPage() {
             <div className="form-grid">
               <div className="span-2">
                 <EmptyState
-                  title="Routing saved"
-                  description="The draft route is stored and the document is ready for routing. Inbox activation will be added in a later phase."
+                  title={routeStarted ? 'Route sent' : 'Routing saved'}
+                  description={
+                    routeStarted
+                      ? 'The route is active and assignees can see their tasks in the inbox.'
+                      : 'The draft route is stored and the document is ready for routing.'
+                  }
                 />
               </div>
               <div className="button-row span-2">
+                {routeStarted ? <Link className="button" to="/inbox">Open inbox</Link> : null}
                 <Link className="button primary" to="/documents">View documents</Link>
               </div>
             </div>

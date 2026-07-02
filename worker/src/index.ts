@@ -6,6 +6,7 @@ import {
   hashR2Object,
   insertDocumentFile,
   markDocumentPreparing,
+  startDocumentRoute,
 } from './hasura'
 
 type Bindings = {
@@ -219,6 +220,24 @@ app.post('/api/documents/:documentId/certificate', async (c) => {
   const claims = await requireAuth(c)
   if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
   return c.json({ requestId: requestId(c), status: 'not_implemented' }, 501)
+})
+
+app.post('/api/routes/:routeId/start', async (c) => {
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+
+  const routeId = c.req.param('routeId')
+  if (!routeId) return jsonError(c, 400, 'VALIDATION_FAILED', 'Route id is required.')
+
+  try {
+    const result = await startDocumentRoute(c.env, routeId, claims.sub, requestId(c))
+    return c.json({ requestId: requestId(c), ...result })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Route start failed.'
+    const status: ErrorStatus =
+      message.includes('not authorized') || message.includes('not found') ? 403 : 400
+    return jsonError(c, status, 'ROUTE_START_FAILED', message)
+  }
 })
 
 app.post('/api/routes/:routeId/advance', async (c) => {

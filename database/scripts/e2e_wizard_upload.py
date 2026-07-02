@@ -261,9 +261,6 @@ def main() -> None:
         },
     )
 
-    route_id = str(uuid.uuid4())
-    step_id = str(uuid.uuid4())
-    assignee_id = str(uuid.uuid4())
     print("7/8 Create draft route with nested steps...")
     route_data = graphql_request(
         hasura_url,
@@ -286,7 +283,6 @@ def main() -> None:
         """,
         {
             "object": {
-                "id": route_id,
                 "organization_id": org_id,
                 "document_id": document["id"],
                 "version_id": version["id"],
@@ -295,7 +291,6 @@ def main() -> None:
                 "route_steps": {
                     "data": [
                         {
-                            "id": step_id,
                             "organization_id": org_id,
                             "sequence": 1,
                             "action": "review",
@@ -304,7 +299,6 @@ def main() -> None:
                             "route_step_assignees": {
                                 "data": [
                                     {
-                                        "id": assignee_id,
                                         "organization_id": org_id,
                                         "assignee_id": profile["id"],
                                         "status": "pending",
@@ -321,7 +315,7 @@ def main() -> None:
     if not route:
         raise RuntimeError("Route insert returned null.")
 
-    print("8/8 Mark document ready for routing...")
+    print("8/9 Mark document ready for routing...")
     status_data = graphql_request(
         hasura_url,
         token,
@@ -339,11 +333,41 @@ def main() -> None:
     if not updated or updated["status"] != "ready_for_routing":
         raise RuntimeError("Document status was not updated to ready_for_routing.")
 
+    print("9/9 Start route via Worker...")
+    started = worker_request(f"/api/routes/{route['id']}/start", token, method="POST")
+    if started.get("status") != "active":
+        raise RuntimeError(f"Route was not activated: {started}")
+
+    inbox = graphql_request(
+        hasura_url,
+        token,
+        """
+        query InboxAfterStart($routeId: uuid!) {
+          route_step_assignees(
+            where: {
+              status: { _eq: "active" }
+              step: { status: { _eq: "active" }, route_id: { _eq: $routeId } }
+            }
+          ) {
+            id
+            status
+          }
+        }
+        """,
+        {"routeId": route["id"]},
+    )
+    active_assignees = inbox.get("route_step_assignees") or []
+    if not active_assignees:
+        raise RuntimeError("No active inbox assignees after route start.")
+
     print(
-        "PASS: E2E wizard upload + routing smoke completed.\n"
+        "PASS: E2E wizard upload + routing + activation completed.\n"
         f"  document_id={document['id']}\n"
         f"  version_id={version['id']}\n"
         f"  route_id={route['id']}\n"
+        f"  route_status={started.get('status')}\n"
+        f"  active_step_ids={started.get('activeStepIds')}\n"
+        f"  inbox_assignees={len(active_assignees)}\n"
         f"  file_id={complete.get('fileId', file_id)}\n"
         f"  sha256={complete.get('sha256')}\n"
         f"  upload_status={complete.get('status')}\n"
