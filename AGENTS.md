@@ -189,7 +189,7 @@ Type-check:        [TYPECHECK_COMMAND]
 Test:              [TEST_COMMAND]
 Build:             [BUILD_COMMAND]
 Verify:            [VERIFY_COMMAND]
-SQLite map sync:   [SQLITE_MAP_COMMAND]
+SQLite map sync:   python database/scripts/generate_schema_map.py
 Deploy:            [DEPLOY_COMMAND]
 Workflow app:      python workflow-app/server.py
 Workflow schema:   python workflow-app/scripts/validate_schema.py

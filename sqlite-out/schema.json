@@ -1,0 +1,3834 @@
+{
+  "generatedAt": "2026-07-02T07:10:38.335261+00:00",
+  "tables": {
+    "audit_events": {
+      "sql": "CREATE TABLE audit_events (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  user_id TEXT REFERENCES profiles(id),\n  event_type TEXT NOT NULL,\n  entity_type TEXT NOT NULL,\n  entity_id TEXT,\n  document_id TEXT REFERENCES documents(id),\n  version_id TEXT REFERENCES document_versions(id),\n  previous_value TEXT,\n  new_value TEXT,\n  reason TEXT,\n  ip_address TEXT,\n  user_agent TEXT,\n  request_id TEXT,\n  source TEXT NOT NULL DEFAULT 'app',\n  integrity_hash TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "user_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "event_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "entity_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "previous_value",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "new_value",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "ip_address",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "user_agent",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "request_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "source",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'app'",
+          "primaryKey": false
+        },
+        {
+          "name": "integrity_hash",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "user_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_audit_document_created",
+          "unique": false,
+          "columns": [
+            "organization_id",
+            "document_id",
+            "created_at"
+          ]
+        }
+      ]
+    },
+    "business_units": {
+      "sql": "CREATE TABLE business_units (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  name TEXT NOT NULL,\n  code TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (organization_id, name)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "code",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_business_units_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "comment_mentions": {
+      "sql": "CREATE TABLE comment_mentions (\n  id TEXT PRIMARY KEY,\n  comment_id TEXT NOT NULL REFERENCES document_comments(id) ON DELETE CASCADE,\n  mentioned_profile_id TEXT NOT NULL REFERENCES profiles(id),\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "comment_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "mentioned_profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "mentioned_profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "comment_id",
+          "toTable": "document_comments",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "comment_replies": {
+      "sql": "CREATE TABLE comment_replies (\n  id TEXT PRIMARY KEY,\n  comment_id TEXT NOT NULL REFERENCES document_comments(id) ON DELETE CASCADE,\n  author_id TEXT NOT NULL REFERENCES profiles(id),\n  body TEXT NOT NULL,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "comment_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "author_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "body",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "author_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "comment_id",
+          "toTable": "document_comments",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "completion_certificates": {
+      "sql": "CREATE TABLE completion_certificates (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id),\n  version_id TEXT NOT NULL REFERENCES document_versions(id),\n  route_id TEXT NOT NULL REFERENCES document_routes(id),\n  certificate_key TEXT NOT NULL UNIQUE,\n  verification_code TEXT NOT NULL UNIQUE,\n  issued_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "route_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "certificate_key",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "verification_code",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "issued_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "route_id",
+          "toTable": "document_routes",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_completion_certificates_3",
+          "unique": true,
+          "columns": [
+            "verification_code"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_completion_certificates_2",
+          "unique": true,
+          "columns": [
+            "certificate_key"
+          ]
+        }
+      ]
+    },
+    "data_export_logs": {
+      "sql": "CREATE TABLE data_export_logs (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  exported_by TEXT NOT NULL REFERENCES profiles(id),\n  export_type TEXT NOT NULL,\n  filters_json TEXT NOT NULL DEFAULT '{}',\n  row_count INTEGER NOT NULL DEFAULT 0,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "exported_by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "export_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "filters_json",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'{}'",
+          "primaryKey": false
+        },
+        {
+          "name": "row_count",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "exported_by",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "departments": {
+      "sql": "CREATE TABLE departments (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  business_unit_id TEXT REFERENCES business_units(id),\n  name TEXT NOT NULL,\n  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (organization_id, name)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "business_unit_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "business_unit_id",
+          "toTable": "business_units",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_departments_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "document_access_grants": {
+      "sql": "CREATE TABLE document_access_grants (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  grantee_id TEXT NOT NULL REFERENCES profiles(id),\n  permission_level TEXT NOT NULL CHECK (permission_level IN ('view', 'comment', 'edit')),\n  granted_by TEXT NOT NULL REFERENCES profiles(id),\n  expires_at TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "grantee_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "permission_level",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "granted_by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "expires_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "granted_by",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "grantee_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "document_attachments": {
+      "sql": "CREATE TABLE document_attachments (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  version_id TEXT REFERENCES document_versions(id),\n  file_name TEXT NOT NULL,\n  mime_type TEXT NOT NULL,\n  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),\n  r2_object_key TEXT NOT NULL UNIQUE,\n  sha256 TEXT,\n  uploaded_by TEXT NOT NULL REFERENCES profiles(id),\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "file_name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "mime_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "size_bytes",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "r2_object_key",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "sha256",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "uploaded_by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "uploaded_by",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_document_attachments_2",
+          "unique": true,
+          "columns": [
+            "r2_object_key"
+          ]
+        }
+      ]
+    },
+    "document_categories": {
+      "sql": "CREATE TABLE document_categories (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  name TEXT NOT NULL,\n  parent_id TEXT REFERENCES document_categories(id),\n  UNIQUE (organization_id, name)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "parent_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "parent_id",
+          "toTable": "document_categories",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_document_categories_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "document_comments": {
+      "sql": "CREATE TABLE document_comments (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  version_id TEXT REFERENCES document_versions(id),\n  author_id TEXT NOT NULL REFERENCES profiles(id),\n  body TEXT NOT NULL,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "author_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "body",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "author_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "document_files": {
+      "sql": "CREATE TABLE document_files (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  version_id TEXT NOT NULL REFERENCES document_versions(id) ON DELETE CASCADE,\n  file_role TEXT NOT NULL CHECK (file_role IN ('original', 'revised', 'signed', 'certificate', 'attachment')),\n  file_name TEXT NOT NULL,\n  mime_type TEXT NOT NULL,\n  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),\n  r2_object_key TEXT NOT NULL UNIQUE,\n  sha256 TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "file_role",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "file_name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "mime_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "size_bytes",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "r2_object_key",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "sha256",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_document_files_2",
+          "unique": true,
+          "columns": [
+            "r2_object_key"
+          ]
+        }
+      ]
+    },
+    "document_retention_rules": {
+      "sql": "CREATE TABLE document_retention_rules (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_type_id TEXT REFERENCES document_types(id),\n  retain_years INTEGER NOT NULL CHECK (retain_years > 0),\n  action_on_expiry TEXT NOT NULL DEFAULT 'archive' CHECK (action_on_expiry IN ('archive', 'notify', 'delete')),\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_type_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "retain_years",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "action_on_expiry",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'archive'",
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "document_type_id",
+          "toTable": "document_types",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "document_routes": {
+      "sql": "CREATE TABLE document_routes (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  version_id TEXT NOT NULL REFERENCES document_versions(id),\n  template_id TEXT REFERENCES routing_templates(id),\n  mode TEXT NOT NULL CHECK (mode IN ('sequential', 'parallel', 'mixed')),\n  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'completed', 'rejected', 'returned', 'cancelled', 'expired')),\n  started_at TEXT,\n  completed_at TEXT\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "template_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "mode",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'draft'",
+          "primaryKey": false
+        },
+        {
+          "name": "started_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "completed_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "template_id",
+          "toTable": "routing_templates",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_document_routes_doc",
+          "unique": false,
+          "columns": [
+            "document_id",
+            "status"
+          ]
+        }
+      ]
+    },
+    "document_tag_assignments": {
+      "sql": "CREATE TABLE document_tag_assignments (\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  tag_id TEXT NOT NULL REFERENCES document_tags(id) ON DELETE CASCADE,\n  PRIMARY KEY (document_id, tag_id)\n)",
+      "columns": [
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "tag_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "tag_id",
+          "toTable": "document_tags",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "document_tags": {
+      "sql": "CREATE TABLE document_tags (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  name TEXT NOT NULL,\n  UNIQUE (organization_id, name)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_document_tags_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "document_types": {
+      "sql": "CREATE TABLE document_types (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  name TEXT NOT NULL,\n  category_id TEXT REFERENCES document_categories(id),\n  UNIQUE (organization_id, name)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "category_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "category_id",
+          "toTable": "document_categories",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_document_types_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "document_versions": {
+      "sql": "CREATE TABLE document_versions (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  version_number INTEGER NOT NULL,\n  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'superseded', 'completed', 'void')),\n  source_version_id TEXT REFERENCES document_versions(id),\n  original_sha256 TEXT,\n  final_sha256 TEXT,\n  created_by TEXT NOT NULL REFERENCES profiles(id),\n  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (document_id, version_number)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_number",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'draft'",
+          "primaryKey": false
+        },
+        {
+          "name": "source_version_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "original_sha256",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "final_sha256",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "created_by",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "source_version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_document_versions_doc",
+          "unique": false,
+          "columns": [
+            "document_id",
+            "version_number"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_document_versions_2",
+          "unique": true,
+          "columns": [
+            "document_id",
+            "version_number"
+          ]
+        }
+      ]
+    },
+    "documents": {
+      "sql": "CREATE TABLE documents (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  owner_id TEXT NOT NULL REFERENCES profiles(id),\n  department_id TEXT REFERENCES departments(id),\n  document_type_id TEXT REFERENCES document_types(id),\n  title TEXT NOT NULL,\n  reference_number TEXT,\n  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN (\n    'draft', 'preparing', 'ready_for_routing', 'in_routing', 'awaiting_action',\n    'returned', 'rejected', 'completed', 'cancelled', 'expired', 'archived'\n  )),\n  priority TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),\n  confidentiality TEXT NOT NULL DEFAULT 'internal',\n  description TEXT NOT NULL DEFAULT '',\n  due_at TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n  updated_at TEXT NOT NULL DEFAULT (datetime('now')),\n  lock_version INTEGER NOT NULL DEFAULT 0,\n  UNIQUE (organization_id, reference_number)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "owner_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "department_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_type_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "reference_number",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'draft'",
+          "primaryKey": false
+        },
+        {
+          "name": "priority",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'normal'",
+          "primaryKey": false
+        },
+        {
+          "name": "confidentiality",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'internal'",
+          "primaryKey": false
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false
+        },
+        {
+          "name": "due_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        },
+        {
+          "name": "lock_version",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "document_type_id",
+          "toTable": "document_types",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "department_id",
+          "toTable": "departments",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "owner_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_documents_org_owner",
+          "unique": false,
+          "columns": [
+            "organization_id",
+            "owner_id"
+          ]
+        },
+        {
+          "name": "idx_documents_org_status",
+          "unique": false,
+          "columns": [
+            "organization_id",
+            "status"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_documents_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "reference_number"
+          ]
+        }
+      ]
+    },
+    "email_templates": {
+      "sql": "CREATE TABLE email_templates (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT REFERENCES organizations(id),\n  template_key TEXT NOT NULL,\n  subject TEXT NOT NULL,\n  body_html TEXT NOT NULL DEFAULT '',\n  body_text TEXT NOT NULL DEFAULT '',\n  updated_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (organization_id, template_key)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "template_key",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "subject",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "body_html",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false
+        },
+        {
+          "name": "body_text",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_email_templates_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "template_key"
+          ]
+        }
+      ]
+    },
+    "file_access_logs": {
+      "sql": "CREATE TABLE file_access_logs (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  file_id TEXT NOT NULL REFERENCES document_files(id),\n  profile_id TEXT NOT NULL REFERENCES profiles(id),\n  access_type TEXT NOT NULL CHECK (access_type IN ('preview', 'download')),\n  ip_address TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "file_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "access_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "ip_address",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "file_id",
+          "toTable": "document_files",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "notification_deliveries": {
+      "sql": "CREATE TABLE notification_deliveries (\n  id TEXT PRIMARY KEY,\n  notification_id TEXT NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,\n  channel TEXT NOT NULL CHECK (channel IN ('email', 'in_app')),\n  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'failed')),\n  delivered_at TEXT,\n  error_message TEXT\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "notification_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "channel",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'pending'",
+          "primaryKey": false
+        },
+        {
+          "name": "delivered_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "error_message",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "notification_id",
+          "toTable": "notifications",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "notifications": {
+      "sql": "CREATE TABLE notifications (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  recipient_id TEXT NOT NULL REFERENCES profiles(id),\n  type TEXT NOT NULL,\n  title TEXT NOT NULL,\n  body TEXT NOT NULL DEFAULT '',\n  entity_type TEXT,\n  entity_id TEXT,\n  read_at TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "recipient_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "title",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "body",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false
+        },
+        {
+          "name": "entity_type",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "entity_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "read_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "recipient_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_notifications_recipient",
+          "unique": false,
+          "columns": [
+            "organization_id",
+            "recipient_id",
+            "read_at"
+          ]
+        }
+      ]
+    },
+    "organization_members": {
+      "sql": "CREATE TABLE organization_members (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  profile_id TEXT NOT NULL REFERENCES profiles(id),\n  department_id TEXT REFERENCES departments(id),\n  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invited', 'suspended')),\n  joined_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (organization_id, profile_id)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "department_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'active'",
+          "primaryKey": false
+        },
+        {
+          "name": "joined_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "department_id",
+          "toTable": "departments",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_organization_members_org",
+          "unique": false,
+          "columns": [
+            "organization_id",
+            "profile_id"
+          ]
+        },
+        {
+          "name": "sqlite_autoindex_organization_members_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "profile_id"
+          ]
+        }
+      ]
+    },
+    "organizations": {
+      "sql": "CREATE TABLE organizations (\n  id TEXT PRIMARY KEY,\n  name TEXT NOT NULL,\n  slug TEXT NOT NULL UNIQUE,\n  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n  updated_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "slug",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_organizations_2",
+          "unique": true,
+          "columns": [
+            "slug"
+          ]
+        }
+      ]
+    },
+    "permissions": {
+      "sql": "CREATE TABLE permissions (\n  id TEXT PRIMARY KEY,\n  key TEXT NOT NULL UNIQUE,\n  description TEXT NOT NULL\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "key",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_permissions_2",
+          "unique": true,
+          "columns": [
+            "key"
+          ]
+        }
+      ]
+    },
+    "profiles": {
+      "sql": "CREATE TABLE profiles (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT REFERENCES organizations(id),\n  display_name TEXT NOT NULL,\n  email TEXT NOT NULL,\n  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'invited', 'deactivated')),\n  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n  updated_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "display_name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "email",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'active'",
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_profiles_org",
+          "unique": false,
+          "columns": [
+            "organization_id"
+          ]
+        }
+      ]
+    },
+    "role_permissions": {
+      "sql": "CREATE TABLE role_permissions (\n  role_id TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,\n  permission_id TEXT NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,\n  PRIMARY KEY (role_id, permission_id)\n)",
+      "columns": [
+        {
+          "name": "role_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "permission_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "permission_id",
+          "toTable": "permissions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "role_id",
+          "toTable": "roles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "roles": {
+      "sql": "CREATE TABLE roles (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT REFERENCES organizations(id),\n  name TEXT NOT NULL,\n  is_system INTEGER NOT NULL DEFAULT 0 CHECK (is_system IN (0, 1)),\n  UNIQUE (organization_id, name)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "is_system",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_roles_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "route_escalations": {
+      "sql": "CREATE TABLE route_escalations (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  route_id TEXT NOT NULL REFERENCES document_routes(id) ON DELETE CASCADE,\n  step_id TEXT REFERENCES route_steps(id),\n  escalated_to_id TEXT NOT NULL REFERENCES profiles(id),\n  reason TEXT NOT NULL,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "route_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "step_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "escalated_to_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "escalated_to_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "step_id",
+          "toTable": "route_steps",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "route_id",
+          "toTable": "document_routes",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "route_reminders": {
+      "sql": "CREATE TABLE route_reminders (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  route_id TEXT NOT NULL REFERENCES document_routes(id) ON DELETE CASCADE,\n  step_id TEXT REFERENCES route_steps(id),\n  assignee_id TEXT NOT NULL REFERENCES profiles(id),\n  channel TEXT NOT NULL DEFAULT 'email' CHECK (channel IN ('email', 'in_app')),\n  sent_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "route_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "step_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "assignee_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "channel",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'email'",
+          "primaryKey": false
+        },
+        {
+          "name": "sent_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "assignee_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "step_id",
+          "toTable": "route_steps",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "route_id",
+          "toTable": "document_routes",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "route_step_actions": {
+      "sql": "CREATE TABLE route_step_actions (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  step_id TEXT NOT NULL REFERENCES route_steps(id) ON DELETE CASCADE,\n  assignee_id TEXT NOT NULL REFERENCES route_step_assignees(id),\n  action TEXT NOT NULL CHECK (action IN ('review', 'approve', 'sign', 'acknowledge', 'reject', 'return', 'delegate')),\n  status TEXT NOT NULL CHECK (status IN ('completed', 'rejected', 'returned', 'delegated')),\n  comment TEXT NOT NULL DEFAULT '',\n  reason TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "step_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "assignee_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "action",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "comment",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "assignee_id",
+          "toTable": "route_step_assignees",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "step_id",
+          "toTable": "route_steps",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "route_step_assignees": {
+      "sql": "CREATE TABLE route_step_assignees (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  step_id TEXT NOT NULL REFERENCES route_steps(id) ON DELETE CASCADE,\n  assignee_id TEXT NOT NULL REFERENCES profiles(id),\n  delegated_from_id TEXT REFERENCES profiles(id),\n  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'rejected', 'returned', 'delegated', 'invalidated')),\n  completed_at TEXT\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "step_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "assignee_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "delegated_from_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'pending'",
+          "primaryKey": false
+        },
+        {
+          "name": "completed_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "delegated_from_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "assignee_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "step_id",
+          "toTable": "route_steps",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "idx_route_assignees_user_status",
+          "unique": false,
+          "columns": [
+            "organization_id",
+            "assignee_id",
+            "status"
+          ]
+        }
+      ]
+    },
+    "route_step_delegations": {
+      "sql": "CREATE TABLE route_step_delegations (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  assignee_id TEXT NOT NULL REFERENCES route_step_assignees(id) ON DELETE CASCADE,\n  from_profile_id TEXT NOT NULL REFERENCES profiles(id),\n  to_profile_id TEXT NOT NULL REFERENCES profiles(id),\n  reason TEXT NOT NULL,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "assignee_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "from_profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "to_profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "to_profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "from_profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "assignee_id",
+          "toTable": "route_step_assignees",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "route_steps": {
+      "sql": "CREATE TABLE route_steps (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  route_id TEXT NOT NULL REFERENCES document_routes(id) ON DELETE CASCADE,\n  sequence INTEGER NOT NULL,\n  action TEXT NOT NULL CHECK (action IN ('review', 'approve', 'sign', 'acknowledge')),\n  completion_rule TEXT NOT NULL DEFAULT 'all' CHECK (completion_rule IN ('all', 'any', 'majority', 'minimum_count')),\n  minimum_count INTEGER,\n  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'completed', 'rejected', 'returned', 'skipped', 'invalidated')),\n  due_at TEXT,\n  UNIQUE (route_id, sequence)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "route_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "sequence",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "action",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "completion_rule",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'all'",
+          "primaryKey": false
+        },
+        {
+          "name": "minimum_count",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "status",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'pending'",
+          "primaryKey": false
+        },
+        {
+          "name": "due_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "route_id",
+          "toTable": "document_routes",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_route_steps_2",
+          "unique": true,
+          "columns": [
+            "route_id",
+            "sequence"
+          ]
+        }
+      ]
+    },
+    "routing_template_steps": {
+      "sql": "CREATE TABLE routing_template_steps (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  template_id TEXT NOT NULL REFERENCES routing_templates(id) ON DELETE CASCADE,\n  sequence INTEGER NOT NULL,\n  action TEXT NOT NULL CHECK (action IN ('review', 'approve', 'sign', 'acknowledge')),\n  completion_rule TEXT NOT NULL DEFAULT 'all' CHECK (completion_rule IN ('all', 'any', 'majority', 'minimum_count')),\n  minimum_count INTEGER,\n  UNIQUE (template_id, sequence)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "template_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "sequence",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "action",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "completion_rule",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'all'",
+          "primaryKey": false
+        },
+        {
+          "name": "minimum_count",
+          "type": "INTEGER",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "template_id",
+          "toTable": "routing_templates",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_routing_template_steps_2",
+          "unique": true,
+          "columns": [
+            "template_id",
+            "sequence"
+          ]
+        }
+      ]
+    },
+    "routing_templates": {
+      "sql": "CREATE TABLE routing_templates (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  name TEXT NOT NULL,\n  description TEXT NOT NULL DEFAULT '',\n  mode TEXT NOT NULL CHECK (mode IN ('sequential', 'parallel', 'mixed')),\n  created_by TEXT NOT NULL REFERENCES profiles(id),\n  created_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (organization_id, name)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "name",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "description",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false
+        },
+        {
+          "name": "mode",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_by",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "created_by",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_routing_templates_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "name"
+          ]
+        }
+      ]
+    },
+    "security_settings": {
+      "sql": "CREATE TABLE security_settings (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id) UNIQUE,\n  session_timeout_minutes INTEGER NOT NULL DEFAULT 15 CHECK (session_timeout_minutes > 0),\n  mfa_required INTEGER NOT NULL DEFAULT 0 CHECK (mfa_required IN (0, 1)),\n  password_policy_json TEXT NOT NULL DEFAULT '{}',\n  updated_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "session_timeout_minutes",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "15",
+          "primaryKey": false
+        },
+        {
+          "name": "mfa_required",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "0",
+          "primaryKey": false
+        },
+        {
+          "name": "password_policy_json",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'{}'",
+          "primaryKey": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_security_settings_2",
+          "unique": true,
+          "columns": [
+            "organization_id"
+          ]
+        }
+      ]
+    },
+    "signature_authentication_events": {
+      "sql": "CREATE TABLE signature_authentication_events (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  signature_event_id TEXT NOT NULL REFERENCES signature_events(id) ON DELETE CASCADE,\n  auth_method TEXT NOT NULL,\n  success INTEGER NOT NULL CHECK (success IN (0, 1)),\n  ip_address TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "signature_event_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "auth_method",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "success",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "ip_address",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "signature_event_id",
+          "toTable": "signature_events",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "signature_events": {
+      "sql": "CREATE TABLE signature_events (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id),\n  version_id TEXT NOT NULL REFERENCES document_versions(id),\n  assignee_id TEXT NOT NULL REFERENCES route_step_assignees(id),\n  signer_id TEXT NOT NULL REFERENCES profiles(id),\n  signature_meaning TEXT NOT NULL,\n  auth_method TEXT NOT NULL,\n  document_hash TEXT NOT NULL,\n  final_pdf_hash TEXT,\n  ip_address TEXT,\n  user_agent TEXT,\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "assignee_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "signer_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "signature_meaning",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "auth_method",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_hash",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "final_pdf_hash",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "ip_address",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "user_agent",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "signer_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "assignee_id",
+          "toTable": "route_step_assignees",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "signature_fields": {
+      "sql": "CREATE TABLE signature_fields (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,\n  version_id TEXT NOT NULL REFERENCES document_versions(id) ON DELETE CASCADE,\n  assignee_id TEXT NOT NULL REFERENCES route_step_assignees(id) ON DELETE CASCADE,\n  field_type TEXT NOT NULL CHECK (field_type IN (\n    'signature', 'initial', 'name', 'job_title', 'date_signed', 'text', 'checkbox',\n    'approval_meaning', 'review_meaning', 'acknowledgment'\n  )),\n  page_number INTEGER NOT NULL CHECK (page_number > 0),\n  x REAL NOT NULL CHECK (x >= 0 AND x <= 1),\n  y REAL NOT NULL CHECK (y >= 0 AND y <= 1),\n  width REAL NOT NULL CHECK (width > 0 AND width <= 1),\n  height REAL NOT NULL CHECK (height > 0 AND height <= 1),\n  required INTEGER NOT NULL DEFAULT 1 CHECK (required IN (0, 1))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "document_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "version_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "assignee_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "field_type",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "page_number",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "x",
+          "type": "REAL",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "y",
+          "type": "REAL",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "width",
+          "type": "REAL",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "height",
+          "type": "REAL",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "required",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "1",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "assignee_id",
+          "toTable": "route_step_assignees",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "version_id",
+          "toTable": "document_versions",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "document_id",
+          "toTable": "documents",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "system_logs": {
+      "sql": "CREATE TABLE system_logs (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT REFERENCES organizations(id),\n  level TEXT NOT NULL CHECK (level IN ('debug', 'info', 'warn', 'error')),\n  message TEXT NOT NULL,\n  context_json TEXT NOT NULL DEFAULT '{}',\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "level",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "message",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "context_json",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'{}'",
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "system_settings": {
+      "sql": "CREATE TABLE system_settings (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT REFERENCES organizations(id),\n  setting_key TEXT NOT NULL,\n  setting_value_json TEXT NOT NULL DEFAULT '{}',\n  updated_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (organization_id, setting_key)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "setting_key",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "setting_value_json",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'{}'",
+          "primaryKey": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_system_settings_2",
+          "unique": true,
+          "columns": [
+            "organization_id",
+            "setting_key"
+          ]
+        }
+      ]
+    },
+    "user_delegations": {
+      "sql": "CREATE TABLE user_delegations (\n  id TEXT PRIMARY KEY,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  delegator_id TEXT NOT NULL REFERENCES profiles(id),\n  delegate_id TEXT NOT NULL REFERENCES profiles(id),\n  starts_at TEXT NOT NULL,\n  ends_at TEXT,\n  reason TEXT NOT NULL DEFAULT '',\n  created_at TEXT NOT NULL DEFAULT (datetime('now'))\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "delegator_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "delegate_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "starts_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "ends_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "reason",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "''",
+          "primaryKey": false
+        },
+        {
+          "name": "created_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "delegate_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "delegator_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "user_notification_preferences": {
+      "sql": "CREATE TABLE user_notification_preferences (\n  id TEXT PRIMARY KEY,\n  profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  channel TEXT NOT NULL CHECK (channel IN ('email', 'in_app', 'both')),\n  enabled INTEGER NOT NULL DEFAULT 1 CHECK (enabled IN (0, 1)),\n  preferences_json TEXT NOT NULL DEFAULT '{}'\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "channel",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "enabled",
+          "type": "INTEGER",
+          "notNull": true,
+          "default": "1",
+          "primaryKey": false
+        },
+        {
+          "name": "preferences_json",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "'{}'",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "user_roles": {
+      "sql": "CREATE TABLE user_roles (\n  profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,\n  role_id TEXT NOT NULL REFERENCES roles(id) ON DELETE CASCADE,\n  PRIMARY KEY (profile_id, role_id)\n)",
+      "columns": [
+        {
+          "name": "profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "role_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": true
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "role_id",
+          "toTable": "roles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        },
+        {
+          "from": "profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "user_sessions": {
+      "sql": "CREATE TABLE user_sessions (\n  id TEXT PRIMARY KEY,\n  profile_id TEXT NOT NULL REFERENCES profiles(id),\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  started_at TEXT NOT NULL DEFAULT (datetime('now')),\n  last_activity_at TEXT NOT NULL DEFAULT (datetime('now')),\n  ip_address TEXT,\n  user_agent TEXT,\n  ended_at TEXT\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "started_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        },
+        {
+          "name": "last_activity_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        },
+        {
+          "name": "ip_address",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "user_agent",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "ended_at",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        }
+      ],
+      "indexes": []
+    },
+    "user_signature_profiles": {
+      "sql": "CREATE TABLE user_signature_profiles (\n  id TEXT PRIMARY KEY,\n  profile_id TEXT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,\n  organization_id TEXT NOT NULL REFERENCES organizations(id),\n  signature_image_key TEXT,\n  initials_image_key TEXT,\n  updated_at TEXT NOT NULL DEFAULT (datetime('now')),\n  UNIQUE (profile_id, organization_id)\n)",
+      "columns": [
+        {
+          "name": "id",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": true
+        },
+        {
+          "name": "profile_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "organization_id",
+          "type": "TEXT",
+          "notNull": true,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "signature_image_key",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "initials_image_key",
+          "type": "TEXT",
+          "notNull": false,
+          "default": null,
+          "primaryKey": false
+        },
+        {
+          "name": "updated_at",
+          "type": "TEXT",
+          "notNull": true,
+          "default": "datetime('now')",
+          "primaryKey": false
+        }
+      ],
+      "foreignKeys": [
+        {
+          "from": "organization_id",
+          "toTable": "organizations",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "NO ACTION"
+        },
+        {
+          "from": "profile_id",
+          "toTable": "profiles",
+          "toColumn": "id",
+          "onUpdate": "NO ACTION",
+          "onDelete": "CASCADE"
+        }
+      ],
+      "indexes": [
+        {
+          "name": "sqlite_autoindex_user_signature_profiles_2",
+          "unique": true,
+          "columns": [
+            "profile_id",
+            "organization_id"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # Active Plan — eDoc Application Implementation
 
-Last Updated: `2026-07-01`
+Last Updated: `2026-07-02`
 Plan Owner: `AI Agent / Project owner`
 Status: `IN_PROGRESS`
 
@@ -18,8 +18,8 @@ Implement eDoc incrementally per `reference/starter.md` and `agent-history/versi
 ## Approval and GxP Gate
 
 - GxP impact: `INDIRECT` (audit trail, signatures, authorization—design for traceability; no automatic compliance claims)
-- Approved task plan: `agent-history/version-0-baseline.md` (`FOR_REVIEW`)
-- Approval status: `PENDING_PROJECT_OWNER`
+- Approved task plan: `agent-history/version-0-baseline.md` (`APPROVED`)
+- Approval status: `APPROVED` (2026-07-02)
 
 ## Ponytail Simplicity Gate
 
@@ -33,7 +33,7 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 | UI shell | `AppShell`, pages, navigation, theme hook | Match reference UI more closely; replace placeholder data |
 | Auth | Live Nhost + local fallback, reset/change password, email verification banner, `ProtectedRoute`, 15-min timeout | Invitations, profile page, auth audit events |
 | Data | Placeholder lists; `useGraphQLQuery` hook ready | Hasura GraphQL queries with permissions |
-| Database | SQLite placeholder; `0001_initial.sql` draft | Full entity model from baseline in SQLite first |
+| Database | SQLite schema implemented (48 tables); PostgreSQL draft migration | Apply to Nhost dev; Hasura metadata export |
 | Worker | Hono routes + JWKS JWT verification in `worker/src/auth.ts` | R2 presign, hash, sign, advance, certificate endpoints |
 | Storage | Not connected | Private R2 with org-scoped paths |
 | Signing | Page scaffold only | PDF viewer, fields, re-auth signing flow |
@@ -62,21 +62,26 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 **Files:** `src/features/auth/*`, `src/pages/LoginPage.tsx`, `ChangePasswordPage.tsx`, `VerifyEmailPage.tsx`, `src/hooks/useGraphQL*.ts`, `worker/src/auth.ts`
 
-### Phase 4: Database and authorization — `NEXT`
+### Phase 4: Database and authorization — `IN_PROGRESS`
 
 - Model baseline entities in `database/sqlite/`
 - Regenerate `sqlite-out/`; validate constraints and FKs
 - PostgreSQL migration + Hasura metadata and permissions
 - Organization isolation; seed test org/users
 
+**Done:** 48-table SQLite schema, seed fixtures, validation scripts, PostgreSQL applied to Nhost (48 tables), Hasura tracked + user permissions, GraphQL wired to Documents/Dashboard/Inbox.  
+**Remaining:** Profile seed mapping to Nhost user IDs; R2 storage; creation wizard persistence.
+
 **Files:** `database/sqlite/*`, `database/migrations/*`, `DATA_MAP.md`
 
-### Phase 5: Documents and storage — `NOT_STARTED`
+### Phase 5: Documents and storage — `IN_PROGRESS`
 
 - Document lists with authorized GraphQL
 - Creation wizard persistence (steps 1–2: metadata + upload)
 - R2 presigned upload/complete; versioning and hashes
 - Secure preview/download via Worker
+
+**Done:** Documents, Dashboard, and Inbox pages use Hasura GraphQL queries.
 
 ### Phase 6: Routing — `NOT_STARTED`
 
@@ -119,9 +124,12 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 - [x] `npm run lint` and `npm run build`
 - [x] `npm run test` (unit)
-- [ ] `python workflow-app/scripts/validate_schema.py` (when app schema changes)
+- [x] `python database/scripts/validate_schema.py` (application schema)
+- [x] `python database/scripts/generate_schema_map.py` (sqlite-out sync)
 - [ ] Manual auth + protected route walkthrough (live Nhost)
-- [ ] Baseline formally approved by project owner
+- [x] Baseline formally approved by project owner
+- [x] Nhost migration applied (`database/scripts/apply_nhost_migration.py`)
+- [x] Hasura metadata configured (`database/scripts/setup_hasura_metadata.py`)
 
 ## Risks and Blockers
 
@@ -141,4 +149,4 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 ## Next Action
 
-Project owner reviews updated baseline. Fill Nhost credentials per `SETUP.md`. Then begin **Phase 4** (SQLite entity model and Hasura authorization).
+Enable Cloudflare R2 and map Nhost user profile rows to auth UUIDs. Continue Phase 5: document creation wizard + R2 upload flow.

@@ -49,6 +49,49 @@ Only public frontend values belong in `.env`. Never commit `.env` or `.dev.vars`
 
 When `VITE_NHOST_SUBDOMAIN` and `VITE_NHOST_REGION` are set to real values (not `your-*` placeholders), the app uses live Nhost auth. Otherwise it falls back to local development auth.
 
+### Nhost production redirect URLs (project owner)
+
+Complete these steps in the Nhost dashboard before testing password reset or email verification on GitHub Pages:
+
+1. Open **Authentication** → **Settings** → **Allowed redirect URLs**.
+2. Add each production URL (HashRouter paths):
+   - `https://carlolidres.github.io/eDoc/#/login`
+   - `https://carlolidres.github.io/eDoc/#/change-password`
+   - `https://carlolidres.github.io/eDoc/#/verify-email`
+3. Save and wait for Nhost to propagate settings (~1 minute).
+4. Verify: sign in at https://carlolidres.github.io/eDoc/#/login, then test **Forgot password** and confirm the reset link lands on `#/change-password`.
+
+### Cloudflare R2 storage (project owner)
+
+Required before Worker file upload/preview endpoints return real presigned URLs.
+
+1. In [Cloudflare Dashboard](https://dash.cloudflare.com) → **R2** → enable R2 if not already enabled.
+2. Create bucket `edoc-dev` (private; no public access).
+3. Confirm `worker/wrangler.toml` has the R2 binding (default):
+
+```toml
+[[r2_buckets]]
+binding = "EDOC_R2"
+bucket_name = "edoc-dev"
+```
+
+4. Set Worker secrets (if not already set):
+
+```powershell
+cd worker
+npx wrangler secret put NHOST_JWKS_URL
+npx wrangler secret put HASURA_GRAPHQL_URL
+npx wrangler secret put HASURA_ADMIN_SECRET
+```
+
+5. Redeploy Worker:
+
+```powershell
+npx wrangler deploy --config wrangler.toml
+```
+
+6. Verify health: `https://edoc-worker.carlolidres.workers.dev/api/health`
+
 ## Run Frontend
 
 ```powershell
@@ -69,6 +112,10 @@ npm run type-check
 npm run test
 npm run build
 npm run worker:check
+python database/scripts/validate_schema.py
+python database/scripts/generate_schema_map.py
+python database/scripts/apply_nhost_migration.py
+python database/scripts/setup_hasura_metadata.py
 ```
 
 ### Manual auth walkthrough

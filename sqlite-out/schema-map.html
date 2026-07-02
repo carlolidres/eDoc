@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>eDoc SQLite Schema Map</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+  </style>
+</head>
+<body>
+  <h1>eDoc SQLite Schema Map</h1>
+  <p>Generated: 2026-07-02T07:10:38.335261+00:00</p>
+  <table>
+    <thead><tr><th>Table</th><th>Columns</th><th>FKs</th><th>Relationships</th></tr></thead>
+    <tbody>
+<tr><td><code>audit_events</code></td><td>17</td><td>4</td><td>version_id→document_versions.id, document_id→documents.id, user_id→profiles.id, organization_id→organizations.id</td></tr>
+<tr><td><code>business_units</code></td><td>5</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>comment_mentions</code></td><td>4</td><td>2</td><td>mentioned_profile_id→profiles.id, comment_id→document_comments.id</td></tr>
+<tr><td><code>comment_replies</code></td><td>5</td><td>2</td><td>author_id→profiles.id, comment_id→document_comments.id</td></tr>
+<tr><td><code>completion_certificates</code></td><td>8</td><td>4</td><td>route_id→document_routes.id, version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>data_export_logs</code></td><td>7</td><td>2</td><td>exported_by→profiles.id, organization_id→organizations.id</td></tr>
+<tr><td><code>departments</code></td><td>5</td><td>2</td><td>business_unit_id→business_units.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_access_grants</code></td><td>8</td><td>4</td><td>granted_by→profiles.id, grantee_id→profiles.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_attachments</code></td><td>11</td><td>4</td><td>uploaded_by→profiles.id, version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_categories</code></td><td>4</td><td>2</td><td>parent_id→document_categories.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_comments</code></td><td>7</td><td>4</td><td>author_id→profiles.id, version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_files</code></td><td>11</td><td>3</td><td>version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_retention_rules</code></td><td>6</td><td>2</td><td>document_type_id→document_types.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_routes</code></td><td>9</td><td>4</td><td>template_id→routing_templates.id, version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_tag_assignments</code></td><td>2</td><td>2</td><td>tag_id→document_tags.id, document_id→documents.id</td></tr>
+<tr><td><code>document_tags</code></td><td>3</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>document_types</code></td><td>4</td><td>2</td><td>category_id→document_categories.id, organization_id→organizations.id</td></tr>
+<tr><td><code>document_versions</code></td><td>10</td><td>4</td><td>created_by→profiles.id, source_version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>documents</code></td><td>15</td><td>4</td><td>document_type_id→document_types.id, department_id→departments.id, owner_id→profiles.id, organization_id→organizations.id</td></tr>
+<tr><td><code>email_templates</code></td><td>7</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>file_access_logs</code></td><td>7</td><td>3</td><td>profile_id→profiles.id, file_id→document_files.id, organization_id→organizations.id</td></tr>
+<tr><td><code>notification_deliveries</code></td><td>6</td><td>1</td><td>notification_id→notifications.id</td></tr>
+<tr><td><code>notifications</code></td><td>10</td><td>2</td><td>recipient_id→profiles.id, organization_id→organizations.id</td></tr>
+<tr><td><code>organization_members</code></td><td>6</td><td>3</td><td>department_id→departments.id, profile_id→profiles.id, organization_id→organizations.id</td></tr>
+<tr><td><code>organizations</code></td><td>5</td><td>0</td><td></td></tr>
+<tr><td><code>permissions</code></td><td>3</td><td>0</td><td></td></tr>
+<tr><td><code>profiles</code></td><td>7</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>role_permissions</code></td><td>2</td><td>2</td><td>permission_id→permissions.id, role_id→roles.id</td></tr>
+<tr><td><code>roles</code></td><td>4</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>route_escalations</code></td><td>7</td><td>4</td><td>escalated_to_id→profiles.id, step_id→route_steps.id, route_id→document_routes.id, organization_id→organizations.id</td></tr>
+<tr><td><code>route_reminders</code></td><td>7</td><td>4</td><td>assignee_id→profiles.id, step_id→route_steps.id, route_id→document_routes.id, organization_id→organizations.id</td></tr>
+<tr><td><code>route_step_actions</code></td><td>9</td><td>3</td><td>assignee_id→route_step_assignees.id, step_id→route_steps.id, organization_id→organizations.id</td></tr>
+<tr><td><code>route_step_assignees</code></td><td>7</td><td>4</td><td>delegated_from_id→profiles.id, assignee_id→profiles.id, step_id→route_steps.id, organization_id→organizations.id</td></tr>
+<tr><td><code>route_step_delegations</code></td><td>7</td><td>4</td><td>to_profile_id→profiles.id, from_profile_id→profiles.id, assignee_id→route_step_assignees.id, organization_id→organizations.id</td></tr>
+<tr><td><code>route_steps</code></td><td>9</td><td>2</td><td>route_id→document_routes.id, organization_id→organizations.id</td></tr>
+<tr><td><code>routing_template_steps</code></td><td>7</td><td>2</td><td>template_id→routing_templates.id, organization_id→organizations.id</td></tr>
+<tr><td><code>routing_templates</code></td><td>7</td><td>2</td><td>created_by→profiles.id, organization_id→organizations.id</td></tr>
+<tr><td><code>security_settings</code></td><td>6</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>signature_authentication_events</code></td><td>7</td><td>2</td><td>signature_event_id→signature_events.id, organization_id→organizations.id</td></tr>
+<tr><td><code>signature_events</code></td><td>13</td><td>5</td><td>signer_id→profiles.id, assignee_id→route_step_assignees.id, version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>signature_fields</code></td><td>12</td><td>4</td><td>assignee_id→route_step_assignees.id, version_id→document_versions.id, document_id→documents.id, organization_id→organizations.id</td></tr>
+<tr><td><code>system_logs</code></td><td>6</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>system_settings</code></td><td>5</td><td>1</td><td>organization_id→organizations.id</td></tr>
+<tr><td><code>user_delegations</code></td><td>8</td><td>3</td><td>delegate_id→profiles.id, delegator_id→profiles.id, organization_id→organizations.id</td></tr>
+<tr><td><code>user_notification_preferences</code></td><td>6</td><td>2</td><td>organization_id→organizations.id, profile_id→profiles.id</td></tr>
+<tr><td><code>user_roles</code></td><td>2</td><td>2</td><td>role_id→roles.id, profile_id→profiles.id</td></tr>
+<tr><td><code>user_sessions</code></td><td>8</td><td>2</td><td>organization_id→organizations.id, profile_id→profiles.id</td></tr>
+<tr><td><code>user_signature_profiles</code></td><td>6</td><td>2</td><td>organization_id→organizations.id, profile_id→profiles.id</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>

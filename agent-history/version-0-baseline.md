@@ -76,7 +76,7 @@ When references conflict, follow this order:
 - Secure private file storage in Cloudflare R2
 - Static frontend on GitHub Pages; Nhost for auth, PostgreSQL, and Hasura GraphQL; Cloudflare Workers for privileged operations
 - UI that closely follows the supplied visual reference; not a pure Ant Design interface
-- PostgreSQL-first schema design in `database/sqlite/`, validated locally before applying migrations and Hasura metadata to Nhost.
+- SQLite-first schema design in `database/sqlite/`, validated locally before applying migrations and Hasura metadata to Nhost.
 - Local workflow app for baseline approval, handoff, and agent coordination
 
 ## Out of Scope
@@ -474,13 +474,13 @@ Each historical handoff must reference this baseline and record the implementati
 # Reviewers Feedback
 
 - Reviewers: `Project owner`
-- Comments: `Baseline populated from reference/starter.md on 2026-07-01. Pending formal approval.`
+- Comments: `Baseline populated from reference/starter.md on 2026-07-01. Approved by project owner 2026-07-02.`
 
 # Baseline Approval
 
 - Baseline version: `v0`
-- Status: `FOR_REVIEW`
-- Approved by: `[Pending project owner approval]`
-- Approval date: `[Pending]`
+- Status: `APPROVED`
+- Approved by: `carlolidres`
+- Approval date: `2026-07-02`
 
 This baseline remains the permanent source of truth unless explicitly revised and approved by the project owner.

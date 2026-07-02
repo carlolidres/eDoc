@@ -5,7 +5,7 @@ const labels: Record<DocumentStatus, string> = {
   preparing: 'Preparing',
   ready_for_routing: 'Ready for Routing',
   in_routing: 'In Routing',
-  awaiting_my_action: 'Awaiting My Action',
+  awaiting_action: 'Awaiting Action',
   returned: 'Returned',
   rejected: 'Rejected',
   completed: 'Completed',

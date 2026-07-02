@@ -1,6 +1,6 @@
 # Project Context
 
-Last Updated: `2026-07-01`
+Last Updated: `2026-07-02`
 
 ## Identity
 
@@ -39,9 +39,11 @@ Do not modify reference folders. Source requirements: `reference/starter.md`.
 
 ## Current Priorities
 
-1. Formal baseline review and approval (`agent-history/version-0-baseline.md`)
-2. Phase 3: Nhost auth, protected routes, session timeout, GraphQL foundation
-3. Phase 4: SQLite/PostgreSQL schema, Hasura permissions, organization isolation
+1. Formal baseline review and approval (`agent-history/version-0-baseline.md`) — status `FOR_REVIEW`
+2. Phase 4: SQLite entity model in `database/sqlite/`, regenerate `sqlite-out/`, Hasura permissions design
+3. Project owner: Nhost production redirect URLs and Cloudflare R2 bucket `edoc-dev` (see `SETUP.md`)
+
+**Completed:** Phase 3 — Nhost auth, protected routes, session timeout, GraphQL hooks, Worker JWT auth (deployed).
 
 ## Critical Constraints
 

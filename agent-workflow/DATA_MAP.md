@@ -1,6 +1,6 @@
 # Data Map
 
-Last Updated: `2026-07-01`
+Last Updated: `2026-07-02`
 
 ## Purpose
 
@@ -38,9 +38,9 @@ Required order:
 4. Record accepted entities here and in `HANDOFF.md`.
 5. Create PostgreSQL migrations and Hasura metadata only after SQLite structure is stable.
 
-## Planned Application Entities (Phase 4)
+## Application Entities (implemented in SQLite)
 
-Source: `reference/starter.md` / `version-0-baseline.md`. SQL not yet implemented in `database/sqlite/schema.sql`.
+Source SQL: [`database/sqlite/schema.sql`](../database/sqlite/schema.sql) — **48 tables**, validated 2026-07-02.
 
 ### Organization and identity
 
@@ -66,7 +66,11 @@ Source: `reference/starter.md` / `version-0-baseline.md`. SQL not yet implemente
 
 `audit_events`, `system_settings`, `security_settings`, `system_logs`, `file_access_logs`, `data_export_logs`
 
-### Planned relationship tree
+Seed fixtures: [`database/sqlite/seed.sql`](../database/sqlite/seed.sql) (test org, users, sample document).
+
+PostgreSQL draft: [`database/migrations/0001_initial.sql`](../database/migrations/0001_initial.sql).
+
+Hasura permissions draft: [`database/metadata/permissions-design.md`](../database/metadata/permissions-design.md).
 
 ```text
 organizations

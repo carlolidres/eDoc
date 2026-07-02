@@ -3,7 +3,7 @@ export type DocumentStatus =
   | 'preparing'
   | 'ready_for_routing'
   | 'in_routing'
-  | 'awaiting_my_action'
+  | 'awaiting_action'
   | 'returned'
   | 'rejected'
   | 'completed'

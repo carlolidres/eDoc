@@ -1,10 +1,91 @@
--- SQLite seed template
---
--- This file is intentionally empty for reuse.
---
--- Add only non-confidential, project-approved seed data for the active
--- project. Do not include user accounts, audit records, production data,
--- regulated records, secrets, or project-specific business data in this
--- reusable template.
+-- eDoc development seed data (non-production fixtures for local SQLite validation)
+-- Do not include real credentials, regulated records, or production data.
 
 PRAGMA foreign_keys = ON;
+
+-- Fixed UUIDs for reproducible local tests
+INSERT INTO organizations (id, name, slug, created_at, updated_at) VALUES
+  ('00000000-0000-4000-8000-000000000001', 'Acme Quality Systems', 'acme-quality', '2026-07-01T00:00:00Z', '2026-07-01T00:00:00Z');
+
+INSERT INTO profiles (id, organization_id, display_name, email, status, created_at, updated_at) VALUES
+  ('00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000001', 'Doc Owner', 'owner@example.test', 'active', '2026-07-01T00:00:00Z', '2026-07-01T00:00:00Z'),
+  ('00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000001', 'Reviewer One', 'reviewer@example.test', 'active', '2026-07-01T00:00:00Z', '2026-07-01T00:00:00Z'),
+  ('00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000001', 'Org Admin', 'admin@example.test', 'active', '2026-07-01T00:00:00Z', '2026-07-01T00:00:00Z');
+
+INSERT INTO business_units (id, organization_id, name, code) VALUES
+  ('00000000-0000-4000-8000-000000000020', '00000000-0000-4000-8000-000000000001', 'Quality', 'QA');
+
+INSERT INTO departments (id, organization_id, business_unit_id, name) VALUES
+  ('00000000-0000-4000-8000-000000000030', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000020', 'Document Control');
+
+INSERT INTO organization_members (id, organization_id, profile_id, department_id, status) VALUES
+  ('00000000-0000-4000-8000-000000000040', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000030', 'active'),
+  ('00000000-0000-4000-8000-000000000041', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000030', 'active'),
+  ('00000000-0000-4000-8000-000000000042', '00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000030', 'active');
+
+INSERT INTO roles (id, organization_id, name, is_system) VALUES
+  ('00000000-0000-4000-8000-000000000050', '00000000-0000-4000-8000-000000000001', 'Document Owner', 0),
+  ('00000000-0000-4000-8000-000000000051', '00000000-0000-4000-8000-000000000001', 'Reviewer', 0),
+  ('00000000-0000-4000-8000-000000000052', '00000000-0000-4000-8000-000000000001', 'Organization Administrator', 0);
+
+INSERT INTO permissions (id, key, description) VALUES
+  ('00000000-0000-4000-8000-000000000060', 'documents.create', 'Create documents'),
+  ('00000000-0000-4000-8000-000000000061', 'documents.view', 'View authorized documents'),
+  ('00000000-0000-4000-8000-000000000062', 'routes.act', 'Complete assigned route actions'),
+  ('00000000-0000-4000-8000-000000000063', 'admin.manage', 'Manage organization settings');
+
+INSERT INTO role_permissions (role_id, permission_id) VALUES
+  ('00000000-0000-4000-8000-000000000050', '00000000-0000-4000-8000-000000000060'),
+  ('00000000-0000-4000-8000-000000000050', '00000000-0000-4000-8000-000000000061'),
+  ('00000000-0000-4000-8000-000000000051', '00000000-0000-4000-8000-000000000061'),
+  ('00000000-0000-4000-8000-000000000051', '00000000-0000-4000-8000-000000000062'),
+  ('00000000-0000-4000-8000-000000000052', '00000000-0000-4000-8000-000000000063');
+
+INSERT INTO user_roles (profile_id, role_id) VALUES
+  ('00000000-0000-4000-8000-000000000010', '00000000-0000-4000-8000-000000000050'),
+  ('00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000051'),
+  ('00000000-0000-4000-8000-000000000012', '00000000-0000-4000-8000-000000000052');
+
+INSERT INTO security_settings (id, organization_id, session_timeout_minutes, mfa_required) VALUES
+  ('00000000-0000-4000-8000-000000000070', '00000000-0000-4000-8000-000000000001', 15, 0);
+
+INSERT INTO documents (
+  id, organization_id, owner_id, department_id, title, reference_number, status, created_at, updated_at
+) VALUES (
+  '00000000-0000-4000-8000-000000000100',
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000010',
+  '00000000-0000-4000-8000-000000000030',
+  'SOP-001 Document Control',
+  'SOP-001',
+  'draft',
+  '2026-07-01T00:00:00Z',
+  '2026-07-01T00:00:00Z'
+);
+
+INSERT INTO document_versions (
+  id, organization_id, document_id, version_number, status, created_by, created_at
+) VALUES (
+  '00000000-0000-4000-8000-000000000101',
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000100',
+  1,
+  'draft',
+  '00000000-0000-4000-8000-000000000010',
+  '2026-07-01T00:00:00Z'
+);
+
+INSERT INTO document_files (
+  id, organization_id, document_id, version_id, file_role, file_name, mime_type, size_bytes, r2_object_key, sha256
+) VALUES (
+  '00000000-0000-4000-8000-000000000102',
+  '00000000-0000-4000-8000-000000000001',
+  '00000000-0000-4000-8000-000000000100',
+  '00000000-0000-4000-8000-000000000101',
+  'original',
+  'sop-001-v1.pdf',
+  'application/pdf',
+  1024,
+  'organizations/00000000-0000-4000-8000-000000000001/documents/00000000-0000-4000-8000-000000000100/versions/00000000-0000-4000-8000-000000000101/original/sop-001-v1.pdf',
+  'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+);
