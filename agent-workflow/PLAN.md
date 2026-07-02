@@ -106,8 +106,8 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 - Completion certificates and verification endpoint
 - Append-only audit trail UI and reports
 
-**Done:** Worker certificate issuance on route completion, public verification endpoint with rate limiting, Hasura read permissions for audit/signature/certificate tables, audit trail panel in signing workspace, reports CSV export, public verify page.  
-**Remaining:** Deploy Worker + Pages for v13, live certificate E2E, auditor-role scoped reads, integrity hash on audit events.
+**Done:** Worker certificate issuance on route completion, public verification endpoint with rate limiting, Hasura read permissions for audit/signature/certificate tables, audit trail panel in signing workspace, reports CSV export, public verify page, SHA-256 integrity hash on Worker audit inserts (DEC-014), auditor-scoped org-wide reads.  
+**Remaining:** Deploy Worker + Pages for v14, assign Auditor test user, live integrity_hash E2E after Worker deploy.
 
 ### Phase 9: Administration — `NOT_STARTED`
 

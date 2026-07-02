@@ -42,6 +42,11 @@ export function AuditTrailPanel({ documentId }: { documentId: string }) {
               {event.user?.display_name ?? 'System'}
               {event.source ? ` · ${event.source}` : ''}
             </p>
+            {event.integrity_hash ? (
+              <p className="audit-trail-hash" title={event.integrity_hash}>
+                Integrity: {event.integrity_hash.slice(0, 12)}…
+              </p>
+            ) : null}
             {event.reason ? <p className="audit-trail-reason">{event.reason}</p> : null}
           </li>
         ))}

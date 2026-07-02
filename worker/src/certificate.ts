@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib'
+import { withIntegrityHash } from './auditIntegrity'
 import { hasuraAdminRequest } from './hasura'
 
 type HasuraEnv = {
@@ -295,6 +296,24 @@ export async function issueCompletionCertificate(
   })
 
   const pdfHash = await sha256Hex(pdfBytes)
+  const auditId = crypto.randomUUID()
+  const audit = await withIntegrityHash({
+    id: auditId,
+    organization_id: context.document.organization_id,
+    user_id: input.userId,
+    event_type: 'certificate.issued',
+    entity_type: 'completion_certificate',
+    entity_id: certificateId,
+    document_id: context.document.id,
+    version_id: context.route.version_id,
+    new_value: {
+      certificateId,
+      verificationCode,
+      routeId: input.routeId,
+    },
+    request_id: input.requestId,
+    source: 'worker',
+  })
 
   await hasuraAdminRequest(
     env,
@@ -336,22 +355,7 @@ export async function issueCompletionCertificate(
         r2_object_key: certificateKey,
         sha256: pdfHash,
       },
-      audit: {
-        organization_id: context.document.organization_id,
-        user_id: input.userId,
-        event_type: 'certificate.issued',
-        entity_type: 'completion_certificate',
-        entity_id: certificateId,
-        document_id: context.document.id,
-        version_id: context.route.version_id,
-        new_value: {
-          certificateId,
-          verificationCode,
-          routeId: input.routeId,
-        },
-        request_id: input.requestId,
-        source: 'worker',
-      },
+      audit,
     },
   )
 

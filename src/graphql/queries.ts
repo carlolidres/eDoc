@@ -251,6 +251,7 @@ export const DOCUMENT_AUDIT_EVENTS = `
       user_id
       reason
       source
+      integrity_hash
       created_at
       user {
         display_name
@@ -266,6 +267,7 @@ export const RECENT_AUDIT_EVENTS = `
       event_type
       document_id
       source
+      integrity_hash
       created_at
       user {
         display_name
@@ -302,6 +304,7 @@ export type DocumentAuditEventsResponse = {
     user_id: string | null
     reason: string | null
     source: string
+    integrity_hash: string | null
     created_at: string
     user: { display_name: string } | null
   }>
@@ -313,6 +316,7 @@ export type RecentAuditEventsResponse = {
     event_type: string
     document_id: string | null
     source: string
+    integrity_hash: string | null
     created_at: string
     user: { display_name: string } | null
     document: { title: string; reference_number: string | null } | null

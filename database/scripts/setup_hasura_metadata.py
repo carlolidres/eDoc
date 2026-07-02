@@ -309,6 +309,92 @@ def create_relationships(endpoint: str, admin_secret: str) -> None:
             "type": "pg_create_object_relationship",
             "args": {
                 "source": "default",
+                "table": {"schema": "public", "name": "documents"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_versions"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_events"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "completion_certificates"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "security_settings"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "profiles"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_array_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "profiles"},
+                "name": "user_roles",
+                "using": {
+                    "foreign_key_constraint_on": {
+                        "table": {"schema": "public", "name": "user_roles"},
+                        "column": "profile_id",
+                    }
+                },
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "user_roles"},
+                "name": "role",
+                "using": {"foreign_key_constraint_on": "role_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "audit_events"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
                 "table": {"schema": "public", "name": "audit_events"},
                 "name": "user",
                 "using": {"foreign_key_constraint_on": "user_id"},
@@ -389,23 +475,6 @@ OWNER_DOCUMENT_FILTER = {"document": {"owner_id": {"_eq": "X-Hasura-User-Id"}}}
 OWNER_ROUTE_FILTER = {"route": OWNER_DOCUMENT_FILTER}
 OWNER_STEP_FILTER = {"step": OWNER_ROUTE_FILTER}
 ASSIGNEE_FILTER = {"assignee_id": {"_eq": "X-Hasura-User-Id"}}
-ORG_PEER_FILTER = {"organization": {"profiles": {"id": {"_eq": "X-Hasura-User-Id"}}}}
-
-
-def drop_user_permission(endpoint: str, admin_secret: str, table_name: str, permission_type: str) -> None:
-    try:
-        metadata_request(
-            endpoint,
-            admin_secret,
-            {
-                "type": permission_type,
-                "args": {"source": "default", "table": {"schema": "public", "name": table_name}, "role": "user"},
-            },
-        )
-    except urllib.error.HTTPError:
-        pass
-
-
 ASSIGNEE_DOCUMENT_FILTER = {
     "_or": [
         {"owner_id": {"_eq": "X-Hasura-User-Id"}},
@@ -422,10 +491,60 @@ ASSIGNEE_DOCUMENT_FILTER = {
         },
     ]
 }
+ORG_PEER_FILTER = {"organization": {"profiles": {"id": {"_eq": "X-Hasura-User-Id"}}}}
+ORG_MEMBERSHIP_FILTER = {
+    "organization": {
+        "profiles": {
+            "id": {"_eq": "X-Hasura-User-Id"},
+        }
+    }
+}
+ORGANIZATION_SELF_FILTER = {
+    "profiles": {
+        "id": {"_eq": "X-Hasura-User-Id"},
+    }
+}
+AUDITOR_ORG_FILTER = {
+    "organization": {
+        "profiles": {
+            "_and": [
+                {"id": {"_eq": "X-Hasura-User-Id"}},
+                {"user_roles": {"role": {"name": {"_eq": "Auditor"}}}},
+            ]
+        }
+    }
+}
+AUDIT_EVENTS_USER_FILTER = {
+    "_or": [
+        {"document": ASSIGNEE_DOCUMENT_FILTER},
+        AUDITOR_ORG_FILTER,
+    ]
+}
+DOCUMENT_USER_FILTER = {
+    "_or": [
+        ASSIGNEE_DOCUMENT_FILTER,
+        AUDITOR_ORG_FILTER,
+    ]
+}
+
+
+def drop_user_permission(endpoint: str, admin_secret: str, table_name: str, permission_type: str) -> None:
+    try:
+        metadata_request(
+            endpoint,
+            admin_secret,
+            {
+                "type": permission_type,
+                "args": {"source": "default", "table": {"schema": "public", "name": table_name}, "role": "user"},
+            },
+        )
+    except urllib.error.HTTPError:
+        pass
+
 
 def apply_permissions(endpoint: str, admin_secret: str) -> None:
     """Apply user-role permissions for Phase 5 reads and wizard routing inserts."""
-    for table_name in ("route_step_assignees", "route_steps", "document_routes", "profiles", "documents", "document_versions", "document_files", "signature_fields"):
+    for table_name in ("route_step_assignees", "route_steps", "document_routes", "profiles", "documents", "document_versions", "document_files", "signature_fields", "audit_events", "signature_events", "completion_certificates", "security_settings"):
         drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_select_permission")
     for table_name in ("documents", "document_routes", "route_steps", "route_step_assignees"):
         drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_update_permission")
@@ -762,9 +881,11 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                         "reason",
                         "source",
                         "request_id",
+                        "integrity_hash",
                         "created_at",
                     ],
-                    "filter": {"document": ASSIGNEE_DOCUMENT_FILTER},
+                    "filter": AUDIT_EVENTS_USER_FILTER,
+                    "allow_aggregations": True,
                 },
             },
         },
@@ -787,7 +908,7 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                         "final_pdf_hash",
                         "created_at",
                     ],
-                    "filter": {"document": ASSIGNEE_DOCUMENT_FILTER},
+                    "filter": {"document": DOCUMENT_USER_FILTER},
                 },
             },
         },
@@ -807,7 +928,7 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                         "verification_code",
                         "issued_at",
                     ],
-                    "filter": {"document": ASSIGNEE_DOCUMENT_FILTER},
+                    "filter": {"document": DOCUMENT_USER_FILTER},
                 },
             },
         },
@@ -841,6 +962,211 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                 continue
             raise RuntimeError(f"Permission failed: {body}") from error
     print("User-role permissions applied.")
+    apply_auditor_permissions(endpoint, admin_secret)
+
+
+AUDITOR_AUDIT_COLUMNS = [
+    "id",
+    "organization_id",
+    "event_type",
+    "entity_type",
+    "entity_id",
+    "document_id",
+    "version_id",
+    "user_id",
+    "previous_value",
+    "new_value",
+    "reason",
+    "source",
+    "request_id",
+    "integrity_hash",
+    "created_at",
+]
+
+
+def drop_role_permission(endpoint: str, admin_secret: str, table_name: str, permission_type: str, role: str) -> None:
+    try:
+        metadata_request(
+            endpoint,
+            admin_secret,
+            {
+                "type": permission_type,
+                "args": {"source": "default", "table": {"schema": "public", "name": table_name}, "role": role},
+            },
+        )
+    except urllib.error.HTTPError:
+        pass
+
+
+def apply_auditor_permissions(endpoint: str, admin_secret: str) -> None:
+    """Apply read-only auditor role permissions scoped to the user's organization."""
+    auditor_tables = (
+        "audit_events",
+        "documents",
+        "document_versions",
+        "signature_events",
+        "completion_certificates",
+        "security_settings",
+        "profiles",
+        "organizations",
+    )
+    for table_name in auditor_tables:
+        drop_role_permission(endpoint, admin_secret, table_name, "pg_drop_select_permission", "auditor")
+
+    auditor_permissions = [
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "audit_events"},
+                "role": "auditor",
+                "permission": {
+                    "columns": AUDITOR_AUDIT_COLUMNS,
+                    "filter": ORG_MEMBERSHIP_FILTER,
+                    "allow_aggregations": True,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "documents"},
+                "role": "auditor",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "organization_id",
+                        "owner_id",
+                        "title",
+                        "reference_number",
+                        "status",
+                        "priority",
+                        "due_at",
+                        "created_at",
+                        "updated_at",
+                    ],
+                    "filter": ORG_MEMBERSHIP_FILTER,
+                    "allow_aggregations": True,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_versions"},
+                "role": "auditor",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "organization_id",
+                        "document_id",
+                        "version_number",
+                        "status",
+                        "original_sha256",
+                        "created_at",
+                    ],
+                    "filter": ORG_MEMBERSHIP_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_events"},
+                "role": "auditor",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "document_id",
+                        "version_id",
+                        "assignee_id",
+                        "signer_id",
+                        "signature_meaning",
+                        "auth_method",
+                        "document_hash",
+                        "final_pdf_hash",
+                        "created_at",
+                    ],
+                    "filter": ORG_MEMBERSHIP_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "completion_certificates"},
+                "role": "auditor",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "document_id",
+                        "version_id",
+                        "route_id",
+                        "certificate_key",
+                        "verification_code",
+                        "issued_at",
+                    ],
+                    "filter": ORG_MEMBERSHIP_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "security_settings"},
+                "role": "auditor",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "organization_id",
+                        "session_timeout_minutes",
+                        "mfa_required",
+                        "updated_at",
+                    ],
+                    "filter": ORG_MEMBERSHIP_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "profiles"},
+                "role": "auditor",
+                "permission": {
+                    "columns": ["id", "organization_id", "display_name", "email", "status"],
+                    "filter": ORG_MEMBERSHIP_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "organizations"},
+                "role": "auditor",
+                "permission": {
+                    "columns": ["id", "name", "slug", "created_at"],
+                    "filter": ORGANIZATION_SELF_FILTER,
+                },
+            },
+        },
+    ]
+
+    for permission in auditor_permissions:
+        try:
+            metadata_request(endpoint, admin_secret, permission)
+        except urllib.error.HTTPError as error:
+            body = error.read().decode("utf-8", errors="replace")
+            if "already exists" in body.lower() or "already defined" in body.lower():
+                continue
+            raise RuntimeError(f"Auditor permission failed: {body}") from error
+    print("Auditor-role permissions applied.")
 
 
 def main() -> None:

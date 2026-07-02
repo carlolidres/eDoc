@@ -1,3 +1,4 @@
+import { withIntegrityHash } from './auditIntegrity'
 import {
   type AssigneeState,
   type CompletionRule,
@@ -202,6 +203,21 @@ export async function startDocumentRoute(
   if (!activeStepIds.length) throw new Error('Route has no pending steps to activate.')
 
   const startedAt = new Date().toISOString()
+  const auditId = crypto.randomUUID()
+  const audit = await withIntegrityHash({
+    id: auditId,
+    organization_id: route.organization_id,
+    user_id: userId,
+    event_type: 'route.started',
+    entity_type: 'document_route',
+    entity_id: routeId,
+    document_id: route.document_id,
+    version_id: route.version_id,
+    previous_value: { route_status: 'draft', document_status: route.document.status },
+    new_value: { route_status: 'active', document_status: 'in_routing', active_step_ids: activeStepIds },
+    request_id: requestId,
+    source: 'worker',
+  })
 
   await hasuraAdminRequest(
     env,
@@ -239,19 +255,7 @@ export async function startDocumentRoute(
       documentId: route.document_id,
       startedAt,
       stepIds: activeStepIds,
-      audit: {
-        organization_id: route.organization_id,
-        user_id: userId,
-        event_type: 'route.started',
-        entity_type: 'document_route',
-        entity_id: routeId,
-        document_id: route.document_id,
-        version_id: route.version_id,
-        previous_value: { route_status: 'draft', document_status: route.document.status },
-        new_value: { route_status: 'active', document_status: 'in_routing', active_step_ids: activeStepIds },
-        request_id: requestId,
-        source: 'worker',
-      },
+      audit,
     },
   )
 
@@ -510,6 +514,22 @@ export async function advanceDocumentRoute(
     idempotent: false,
   }
 
+  const audit = await withIntegrityHash({
+    id: auditId,
+    organization_id: route.organization_id,
+    user_id: input.userId,
+    event_type: eventType,
+    entity_type: 'route_step_assignee',
+    entity_id: input.assigneeRowId,
+    document_id: route.document_id,
+    version_id: route.version_id,
+    previous_value: { assignee_status: assigneeRow.status, step_status: step.status, route_status: route.status },
+    new_value: { ...response, response },
+    reason: input.reason ?? null,
+    request_id: input.idempotencyKey,
+    source: 'worker',
+  })
+
   await hasuraAdminRequest(
     env,
     `mutation AdvanceRoute(
@@ -595,21 +615,7 @@ export async function advanceDocumentRoute(
       actionStatus: actionRecordStatus(input.action),
       comment: input.comment ?? '',
       reason: input.reason ?? null,
-      audit: {
-        id: auditId,
-        organization_id: route.organization_id,
-        user_id: input.userId,
-        event_type: eventType,
-        entity_type: 'route_step_assignee',
-        entity_id: input.assigneeRowId,
-        document_id: route.document_id,
-        version_id: route.version_id,
-        previous_value: { assignee_status: assigneeRow.status, step_status: step.status, route_status: route.status },
-        new_value: { ...response, response },
-        reason: input.reason ?? null,
-        request_id: input.idempotencyKey,
-        source: 'worker',
-      },
+      audit,
       stepStatus,
       routeId: input.routeId,
       routeStatus,

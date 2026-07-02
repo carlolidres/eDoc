@@ -26,7 +26,8 @@ INSERT INTO organization_members (id, organization_id, profile_id, department_id
 INSERT INTO roles (id, organization_id, name, is_system) VALUES
   ('00000000-0000-4000-8000-000000000050', '00000000-0000-4000-8000-000000000001', 'Document Owner', 0),
   ('00000000-0000-4000-8000-000000000051', '00000000-0000-4000-8000-000000000001', 'Reviewer', 0),
-  ('00000000-0000-4000-8000-000000000052', '00000000-0000-4000-8000-000000000001', 'Organization Administrator', 0);
+  ('00000000-0000-4000-8000-000000000052', '00000000-0000-4000-8000-000000000001', 'Organization Administrator', 0),
+  ('00000000-0000-4000-8000-000000000053', '00000000-0000-4000-8000-000000000001', 'Auditor', 0);
 
 INSERT INTO permissions (id, key, description) VALUES
   ('00000000-0000-4000-8000-000000000060', 'documents.create', 'Create documents'),

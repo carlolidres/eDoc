@@ -1,14 +1,14 @@
 # Current Handoff
 
 Last Updated: `2026-07-02`
-Version: `v13` (Phase 8 E2E verified)
+Version: `v14` (Phase 8 integrity hash + auditor scope)
 Branch: `master`
-Commit: `e938c95`
-Deployment: `DEPLOYED` — Worker `60e76cef`; Pages workflow `28588820838` success
+Commit: `e938c95` (local changes pending commit)
+Deployment: `PARTIAL` — Hasura metadata applied; Worker deploy needed for integrity_hash on new audit events
 
 ## Current Status
 
-Phase 8 certificate issuance and authenticated UI walkthrough verified on production. Hasura `route_steps.route_step_actions` relationship added (required for certificate participant lookup). Live sign + certificate API E2E and Playwright Pages walkthrough pass.
+Phase 8 remaining gaps implemented locally: SHA-256 integrity hashes on Worker audit inserts (DEC-014), auditor-scoped Hasura reads (org-wide via `user_roles` check + dedicated `auditor` role), and UI/export exposure of `integrity_hash`.
 
 ## Deployment URLs
 
@@ -22,23 +22,24 @@ Phase 8 certificate issuance and authenticated UI walkthrough verified on produc
 ## Active Work
 
 - Objective: `Phase 8 — completion certificates and audit trail UI.`
-- Progress: `Live certificate E2E + authenticated Pages walkthrough complete.`
-- Remaining: `Phase 8 gaps — auditor-role scoped reads, integrity hash on audit events.`
+- Progress: `Integrity hash + auditor permissions implemented; Hasura metadata applied.`
+- Remaining: `Deploy Worker (integrity hash), deploy Pages (UI), assign Auditor role to test user, optional Nhost JWT allowed-role for auditor.`
 
 ## Recently Completed
 
-- Hasura metadata — `route_steps → route_step_actions` relationship (fixes silent certificate issuance failure).
-- `e2e_sign_flow.py` — extended to steps 13–15 (certificate row, audit event, verification API).
-- Playwright live walkthrough — dashboard, inbox, documents, reports, signing workspace audit/certificate card, public verify form (5/5 pass).
-- Production certificate sample — `cea5232a-5006-4f64-810a-901daef81ab6` / code `MR778NA2` (from latest E2E run).
+- `worker/src/auditIntegrity.ts` — SHA-256 canonical JSON hash per DEC-014; applied to route start, route advance, certificate issuance audit inserts.
+- `database/scripts/setup_hasura_metadata.py` — auditor org-scoped reads (`auditor` role + `user` role expansion via `user_roles`), `integrity_hash` column on audit select, supporting relationships.
+- UI — `integrity_hash` in audit trail panel and reports CSV export.
+- Seed — `Auditor` role (`00000000-0000-4000-8000-000000000053`) in SQLite seed + Postgres `0002_seed_dev.sql`.
+- `e2e_sign_flow.py` — step 13 validates `integrity_hash` on `certificate.issued` audit event.
 
 ## Reliability Snapshot
 
-- Acceptance criteria: `PARTIAL` — CERT/AUDIT baseline largely met; integrity hash and auditor role scope remain.
+- Acceptance criteria: `NEAR_COMPLETE` — AUDIT-AC-003 and auditor scope implemented; live Worker deploy + auditor user assignment remain.
 - Instruction conflicts: `NONE`
-- Repository status: `CLEAN` (except untracked `.cursor/`)
-- Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED`, `CERTIFICATE_E2E_PASSING`, `LIVE_UI_WALKTHROUGH_PASSING`
-- Last known working state: `npm run build`, `npm run worker:check`, `npm run lint`, `npm run test` pass.
+- Repository status: `DIRTY` (Phase 8 gap closure changes)
+- Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED`, `UNIT_TESTS_PASSING`, `WORKER_TYPECHECK_PASSING`
+- Last known working state: `npm run test`, `npm run worker:check`, `npm run lint`, `npm run build` pass.
 
 ## Known Issues
 
@@ -46,47 +47,26 @@ Phase 8 certificate issuance and authenticated UI walkthrough verified on produc
 |---|---|---|---|
 | Low | Only synced profiles appear as assignees | Multi-user routing needs more `sync_nhost_profile.py` runs | Sync additional Nhost users |
 | Low | Nhost production redirect URLs not confirmed | Reset/verify may fail on Pages | Owner adds URLs per `SETUP.md` |
+| Low | Existing audit events lack integrity_hash | Pre-deploy events have null hash | Expected; new Worker events will populate hash |
 
 ## Verification
 
 | Check | Status | Result |
 |---|---|---|
-| Hasura `route_step_actions` relationship | `PASS` | `setup_hasura_metadata.py` exit 0 |
-| Live sign + certificate API E2E | `PASS` | `e2e_sign_flow.py` steps 1–15 |
-| Authenticated Pages walkthrough | `PASS` | Playwright `phase8-live.spec.ts` 5/5 |
-| Signing workspace audit + certificate card | `PASS` | `#/sign/:assigneeId` on live Pages |
-| Public verify form submission | `PASS` | `Certificate verified` on live Pages |
-| Worker deploy (Phase 8) | `PASS` | `edoc-worker` version `af39241e` |
-| GitHub Pages deploy (Phase 8) | `PASS` | workflow `28586057558` success |
-
-## Manual UI Verification (2026-07-02)
-
-```text
-Route: https://carlolidres.github.io/eDoc/ (authenticated + verify)
-Tested by: Agent (Playwright against production Pages)
-Original issue: Phase 8 authenticated walkthrough + certificate E2E
-
-Verification steps:
-1. Sign in with Nhost test account
-2. Open dashboard, inbox, documents, reports (certificate audit events visible)
-3. Open signing workspace for completed assignee — audit trail + certificate card + verify link
-4. Submit public verify form with issued certificate id + code
-
-Result: PASSED
-Console: NO_NEW_ERRORS in Playwright run
-Network: Worker verification API returned valid certificate
-Comments: Re-run with `python database/scripts/e2e_live_walkthrough.py --assignee-id ... --certificate-id ... --verification-code ...`
-```
-
-## SQLite Sync
-
-- Nhost migration status: `APPLIED` — `0001_initial.sql`, `0002_seed_dev.sql`
-- Hasura permissions: `APPLIED` — Phase 7 + Phase 8 assignee/audit reads + `route_step_actions` relationship
+| `npm run test` | `PASS` | 15/15 including `auditIntegrity.test.ts` |
+| `npm run worker:check` | `PASS` | Worker TypeScript clean |
+| `npm run lint` | `PASS` | 0 errors (2 pre-existing warnings) |
+| `npm run build` | `PASS` | Production build |
+| Hasura metadata (auditor + integrity_hash column) | `PASS` | `setup_hasura_metadata.py` exit 0 |
+| Live Worker integrity_hash E2E | `NOT_RUN` | Requires Worker deploy |
 
 ## Next Action
 
-1. Phase 8 remaining: auditor-role scoped reads, integrity hash on audit events.
-2. Phase 9 administration or Phase 7 field-placement wizard.
+1. Deploy Worker (`wrangler deploy`) so new audit events include `integrity_hash`.
+2. Deploy Pages for audit trail / reports UI changes.
+3. Assign Auditor role to a test user: `sync_nhost_profile.py --role-id 00000000-0000-4000-8000-000000000053`.
+4. Optional: add `auditor` to Nhost JWT allowed roles for dedicated Hasura role header.
+5. Phase 9 administration or Phase 7 field-placement wizard.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 

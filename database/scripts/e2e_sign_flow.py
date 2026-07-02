@@ -448,6 +448,7 @@ def main() -> None:
           ) {
             id
             event_type
+            integrity_hash
           }
         }
         """,
@@ -459,6 +460,9 @@ def main() -> None:
     audit_event = (cert_rows.get("audit_events") or [None])[0]
     if not audit_event:
         raise RuntimeError("certificate.issued audit event not visible to assignee.")
+    integrity_hash = audit_event.get("integrity_hash")
+    if not integrity_hash or not isinstance(integrity_hash, str) or len(integrity_hash) != 64:
+        raise RuntimeError(f"Audit event missing integrity_hash: {audit_event}")
 
     print("14/15 Verify public verification endpoint...")
     verification = request_json(

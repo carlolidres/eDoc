@@ -22,12 +22,13 @@ export function ReportsPage() {
 
   const exportRows = useMemo(
     () => [
-      ['Event', 'Document', 'Actor', 'Source', 'Timestamp'],
+      ['Event', 'Document', 'Actor', 'Source', 'Integrity hash', 'Timestamp'],
       ...events.map((event) => [
         formatEventType(event.event_type),
         event.document?.title ?? event.document_id ?? '',
         event.user?.display_name ?? 'System',
         event.source,
+        event.integrity_hash ?? '',
         new Date(event.created_at).toISOString(),
       ]),
     ],
@@ -40,7 +41,7 @@ export function ReportsPage() {
         <div>
           <span className="eyebrow">Analytics</span>
           <h2>Reports</h2>
-          <p>Authorized audit activity and export for documents you can access.</p>
+          <p>Authorized audit activity and export. Auditors see organization-wide events.</p>
         </div>
         <button
           className="button"
