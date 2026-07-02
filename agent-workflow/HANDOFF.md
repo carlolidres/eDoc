@@ -3,12 +3,12 @@
 Last Updated: `2026-07-02`
 Version: `v6`
 Branch: `master`
-Commit: `pending`
+Commit: `f3b0dc6` (+ uncommitted wizard/R2 work)
 Deployment: `DEPLOYED`
 
 ## Current Status
 
-Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tracked with org-scoped `user` role permissions. Phase 5 started: Documents, Dashboard, and Inbox pages wired to Hasura GraphQL.
+Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tracked with org-scoped `user` role permissions. Phase 5 in progress: GraphQL reads on UI pages; document creation wizard (metadata + upload) and Worker R2 proxy flow implemented locally.
 
 ## Deployment URLs
 
@@ -22,32 +22,31 @@ Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tr
 ## Active Work
 
 - Objective: `Phase 5 — document creation wizard, R2 upload, profile-to-auth user mapping.`
-- Progress: `Nhost schema live; Hasura permissions applied; GraphQL list/metrics/inbox queries on UI pages.`
-- Remaining: `Map profiles to Nhost user UUIDs; enable R2; creation wizard persistence; deploy frontend with GraphQL changes.`
+- Progress: `Wizard steps 1–2 persist metadata via Hasura and upload PDF via Worker→R2; complete-upload hashes file and inserts document_files.`
+- Remaining: `Apply document_versions Hasura permissions on Nhost; map profiles to auth UUIDs; enable R2 in Cloudflare; deploy Worker + frontend.`
 
 ## Recently Completed
 
-- Baseline formally approved by project owner (2026-07-02).
-- Applied `0001_initial.sql` and `0002_seed_dev.sql` to Nhost PostgreSQL (48 tables).
-- Ran `setup_hasura_metadata.py` — tracked tables, relationships, user-role permissions.
-- Wired `DocumentsPage`, `DashboardPage`, `InboxPage` to Hasura via `useDocumentData` hooks.
-- Fixed document status enum: `awaiting_action` in types and `StatusBadge`.
-- Added `database/scripts/apply_nhost_migration.py` and `setup_hasura_metadata.py`.
+- Committed `f3b0dc6` — Phase 4/5 Nhost schema, Hasura GraphQL reads, database scripts.
+- Document creation wizard: metadata save (`documents` + `document_versions`) and PDF upload flow.
+- Worker: `PUT /api/files/upload-content`, R2 put, SHA-256 hash, `document_files` insert via Hasura admin, status → `preparing`.
+- Added `document_versions` insert/select permissions to `setup_hasura_metadata.py`.
 
 ## Reliability Snapshot
 
-- Acceptance criteria: `PARTIAL` — Phase 4 Nhost apply complete; Phase 5 GraphQL reads live; writes/R2 pending.
+- Acceptance criteria: `PARTIAL` — creation wizard + R2 flow coded; needs Nhost profile mapping and R2 enablement to test end-to-end.
 - Instruction conflicts: `NONE`
-- Repository status: `DIRTY` — Phase 4/5 changes pending commit.
+- Repository status: `DIRTY` — wizard/R2 changes uncommitted.
 - Build/database/runtime status: `BUILD_PASSING`
-- Last known working state: `Nhost Hasura returns authorized queries for authenticated user role.`
+- Last known working state: `npm run build` and `npm run worker:check` pass locally.
 
 ## Known Issues
 
 | Severity | Issue | Impact | Next action |
 |---|---|---|---|
-| Medium | Seed profiles use fixed UUIDs, not Nhost auth user IDs | Empty lists until profile row matches signed-in user | Insert profile with Nhost user UUID + org |
-| Medium | Cloudflare R2 not enabled | Upload endpoints return stubs | Owner enables R2 per `SETUP.md` |
+| Medium | Seed profiles use fixed UUIDs, not Nhost auth user IDs | Empty lists / wizard blocked until profile row matches signed-in user | Insert profile with Nhost user UUID + org |
+| Medium | Cloudflare R2 may not be enabled on deployed Worker | Upload returns R2_NOT_CONFIGURED | Owner enables R2 per `SETUP.md`; redeploy Worker |
+| Medium | `document_versions` permissions not yet re-applied on Nhost | Version insert may fail until metadata script rerun | Run `python database/scripts/setup_hasura_metadata.py` |
 | Low | Nhost production redirect URLs not confirmed | Reset/verify may fail on Pages | Owner adds URLs per `SETUP.md` |
 | Low | Due soon/overdue metrics not computed | Dashboard shows 0 for those cards | Add date-filtered aggregates in Phase 5 |
 
@@ -57,21 +56,23 @@ Baseline approved. Phase 4 Nhost migration applied (48 tables). Hasura tables tr
 |---|---|---|
 | SQLite validate | `PASS` | 48 tables |
 | Nhost migration apply | `PASS` | 48 public tables on Nhost PostgreSQL |
-| Hasura metadata | `PASS` | Tables tracked; user permissions applied |
-| Build | `PASS` | Vite production build with GraphQL hooks |
-| Lint / test | `NOT_RUN` | Run before commit |
+| Hasura metadata | `PARTIAL` | User permissions applied; rerun for `document_versions` |
+| Build | `PASS` | Vite production build with wizard |
+| Worker typecheck | `PASS` | `npm run worker:check` |
+| Lint | `NOT_RUN` | Run before next commit |
+| E2E wizard upload | `NOT_RUN` | Blocked on profile + R2 |
 
 ## SQLite Sync
 
 - Nhost migration status: `APPLIED` — `0001_initial.sql`, `0002_seed_dev.sql`
-- Hasura permissions: `APPLIED` (dev, `user` role)
+- Hasura permissions: `APPLIED` (dev, `user` role); `document_versions` pending re-apply
 
 ## Next Action
 
-1. Create `profiles` row in Nhost DB matching signed-in user UUID and seed organization.
-2. Enable Cloudflare R2; wire Worker presign endpoints.
-3. Implement document creation wizard persistence (Phase 5).
-4. Commit and deploy frontend GraphQL changes.
+1. Insert `profiles` row in Nhost matching signed-in user UUID and seed organization.
+2. Enable Cloudflare R2; redeploy Worker with R2 binding.
+3. Run `setup_hasura_metadata.py` to apply `document_versions` permissions.
+4. Commit wizard/R2 changes; deploy frontend and Worker.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 

@@ -1,6 +1,12 @@
 import { Hono, type Context } from 'hono'
 import { z } from 'zod'
 import { verifyBearerToken } from './auth'
+import {
+  assertDocumentOwner,
+  hashR2Object,
+  insertDocumentFile,
+  markDocumentPreparing,
+} from './hasura'
 
 type Bindings = {
   EDOC_R2: R2Bucket
@@ -10,7 +16,7 @@ type Bindings = {
 }
 
 type AppContext = Context<{ Bindings: Bindings }>
-type ErrorStatus = 400 | 401 | 500
+type ErrorStatus = 400 | 401 | 403 | 500
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -23,6 +29,17 @@ const uploadUrlSchema = z.object({
   size: z.number().int().positive(),
 })
 
+const completeUploadSchema = z.object({
+  organizationId: z.string().min(1),
+  documentId: z.string().min(1),
+  versionId: z.string().min(1),
+  fileId: z.string().min(1),
+  objectKey: z.string().min(1),
+  fileName: z.string().min(1),
+  mimeType: z.literal('application/pdf'),
+  sizeBytes: z.number().int().positive(),
+})
+
 function requestId(c: Pick<AppContext, 'req'>) {
   return c.req.header('x-request-id') ?? crypto.randomUUID()
 }
@@ -30,6 +47,10 @@ function requestId(c: Pick<AppContext, 'req'>) {
 function jsonError(c: AppContext, status: ErrorStatus, code: string, message: string) {
   const id = requestId(c)
   return c.json({ error: { code, message, requestId: id } }, status)
+}
+
+function hasR2(c: AppContext) {
+  return Boolean(c.env.EDOC_R2)
 }
 
 async function requireAuth(c: AppContext) {
@@ -49,6 +70,15 @@ async function requireAuth(c: AppContext) {
   }
 }
 
+function buildObjectKey(input: {
+  organizationId: string
+  documentId: string
+  versionId: string
+  fileName: string
+}) {
+  return `organizations/${input.organizationId}/documents/${input.documentId}/versions/${input.versionId}/original/${input.fileName}`
+}
+
 app.get('/api/health', (c) => c.json({ ok: true, service: 'edoc-worker', requestId: requestId(c) }))
 
 app.post('/api/files/upload-url', async (c) => {
@@ -59,22 +89,106 @@ app.post('/api/files/upload-url', async (c) => {
   if (!parsed.success) return jsonError(c, 400, 'VALIDATION_FAILED', 'Upload request is invalid.')
 
   const body = parsed.data
-  const objectKey = `organizations/${body.organizationId}/documents/${body.documentId}/versions/${body.versionId}/original/${body.fileName}`
+  const objectKey = buildObjectKey(body)
+
+  try {
+    await assertDocumentOwner(c.env, body.documentId, claims.sub)
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Authorization failed.'
+    const status: ErrorStatus = message.includes('not authorized') ? 403 : 400
+    return jsonError(c, status, 'FORBIDDEN', message)
+  }
+
+  if (!hasR2(c)) {
+    return c.json({
+      requestId: requestId(c),
+      objectKey,
+      method: 'PUT',
+      uploadUrl: null,
+      note: 'R2 binding is not configured. Enable Cloudflare R2 and redeploy the Worker.',
+      userId: claims.sub,
+    })
+  }
 
   return c.json({
     requestId: requestId(c),
     objectKey,
     method: 'PUT',
-    uploadUrl: null,
-    note: 'Wire R2 presigned upload generation here. Private object path has been reserved.',
+    uploadUrl: '/api/files/upload-content',
+    uploadHeaders: { 'X-Object-Key': objectKey },
     userId: claims.sub,
   })
+})
+
+app.put('/api/files/upload-content', async (c) => {
+  const claims = await requireAuth(c)
+  if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
+  if (!hasR2(c)) return jsonError(c, 500, 'R2_NOT_CONFIGURED', 'R2 binding is not configured.')
+
+  const objectKey = c.req.header('x-object-key')
+  if (!objectKey) return jsonError(c, 400, 'VALIDATION_FAILED', 'X-Object-Key header is required.')
+
+  const body = await c.req.arrayBuffer()
+  if (!body.byteLength) return jsonError(c, 400, 'VALIDATION_FAILED', 'Upload body is empty.')
+
+  await c.env.EDOC_R2.put(objectKey, body, {
+    httpMetadata: { contentType: c.req.header('content-type') ?? 'application/pdf' },
+  })
+
+  return c.json({ requestId: requestId(c), objectKey, sizeBytes: body.byteLength })
 })
 
 app.post('/api/files/complete-upload', async (c) => {
   const claims = await requireAuth(c)
   if (!claims) return jsonError(c, 401, 'UNAUTHENTICATED', 'Authentication is required.')
-  return c.json({ requestId: requestId(c), status: 'accepted' })
+
+  const parsed = completeUploadSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return jsonError(c, 400, 'VALIDATION_FAILED', 'Upload completion request is invalid.')
+
+  const body = parsed.data
+  const expectedKey = buildObjectKey({
+    organizationId: body.organizationId,
+    documentId: body.documentId,
+    versionId: body.versionId,
+    fileName: body.fileName,
+  })
+
+  if (body.objectKey !== expectedKey) {
+    return jsonError(c, 400, 'VALIDATION_FAILED', 'Object key does not match the reserved upload path.')
+  }
+
+  try {
+    const document = await assertDocumentOwner(c.env, body.documentId, claims.sub)
+    if (document.organization_id !== body.organizationId) {
+      return jsonError(c, 403, 'FORBIDDEN', 'Organization mismatch for this document.')
+    }
+
+    if (!hasR2(c)) {
+      return jsonError(c, 500, 'R2_NOT_CONFIGURED', 'R2 binding is not configured.')
+    }
+
+    const sha256 = await hashR2Object(c.env.EDOC_R2, body.objectKey)
+
+    await insertDocumentFile(c.env, {
+      id: body.fileId,
+      organizationId: body.organizationId,
+      documentId: body.documentId,
+      versionId: body.versionId,
+      fileName: body.fileName,
+      mimeType: body.mimeType,
+      sizeBytes: body.sizeBytes,
+      objectKey: body.objectKey,
+      sha256,
+    })
+
+    await markDocumentPreparing(c.env, body.documentId, body.versionId, sha256)
+
+    return c.json({ requestId: requestId(c), status: 'completed', fileId: body.fileId, sha256 })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Upload completion failed.'
+    const status: ErrorStatus = message.includes('not authorized') ? 403 : 500
+    return jsonError(c, status, 'UPLOAD_COMPLETE_FAILED', message)
+  }
 })
 
 app.get('/api/files/:fileId/preview-url', async (c) => {

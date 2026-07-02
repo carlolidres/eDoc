@@ -1,0 +1,37 @@
+export const CREATE_DOCUMENT = `
+  mutation CreateDocument($object: documents_insert_input!) {
+    insert_documents_one(object: $object) {
+      id
+      title
+      status
+      reference_number
+    }
+  }
+`
+
+export const CREATE_DOCUMENT_VERSION = `
+  mutation CreateDocumentVersion($object: document_versions_insert_input!) {
+    insert_document_versions_one(object: $object) {
+      id
+      version_number
+      status
+    }
+  }
+`
+
+export type CreateDocumentResponse = {
+  insert_documents_one: {
+    id: string
+    title: string
+    status: string
+    reference_number: string | null
+  } | null
+}
+
+export type CreateDocumentVersionResponse = {
+  insert_document_versions_one: {
+    id: string
+    version_number: number
+    status: string
+  } | null
+}

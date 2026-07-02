@@ -113,6 +113,8 @@ label { display: grid; gap: 7px; color: var(--brand-dark); font-weight: 800; }
 .step span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 999px; background: var(--surface); color: var(--muted); font-weight: 800; }
 .step.in-progress { border-color: var(--brand); }
 .step.in-progress span { background: var(--brand); color: #fff; }
+.step.complete { border-color: var(--success, #16a34a); opacity: 0.9; }
+.step.complete span { background: color-mix(in srgb, var(--success, #16a34a) 18%, var(--surface)); color: var(--success, #16a34a); }
 .workspace-layout { grid-template-columns: minmax(240px, 320px) minmax(0, 1fr); }
 .pdf-panel { min-height: calc(100vh - 124px); }
 .pdf-toolbar { justify-content: flex-end; margin-bottom: 14px; }

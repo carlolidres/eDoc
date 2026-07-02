@@ -1,3 +1,14 @@
+export const CURRENT_PROFILE = `
+  query CurrentProfile {
+    profiles(limit: 1) {
+      id
+      organization_id
+      display_name
+      email
+    }
+  }
+`
+
 export const DOCUMENTS_LIST = `
   query DocumentsList {
     documents(order_by: { updated_at: desc }) {
@@ -64,6 +75,15 @@ export const INBOX_TASKS = `
     }
   }
 `
+
+export type CurrentProfileResponse = {
+  profiles: Array<{
+    id: string
+    organization_id: string | null
+    display_name: string
+    email: string
+  }>
+}
 
 export type DocumentsListResponse = {
   documents: Array<{

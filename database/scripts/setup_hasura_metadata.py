@@ -354,6 +354,52 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
             "type": "pg_create_select_permission",
             "args": {
                 "source": "default",
+                "table": {"schema": "public", "name": "document_versions"},
+                "role": "user",
+                "permission": {
+                    "columns": [
+                        "id",
+                        "organization_id",
+                        "document_id",
+                        "version_number",
+                        "status",
+                        "original_sha256",
+                        "created_at",
+                    ],
+                    "filter": {
+                        "document": {
+                            "owner_id": {"_eq": "X-Hasura-User-Id"},
+                        }
+                    },
+                },
+            },
+        },
+        {
+            "type": "pg_create_insert_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_versions"},
+                "role": "user",
+                "permission": {
+                    "check": {
+                        "document": {
+                            "owner_id": {"_eq": "X-Hasura-User-Id"},
+                        }
+                    },
+                    "set": {"created_by": "X-Hasura-User-Id"},
+                    "columns": [
+                        "organization_id",
+                        "document_id",
+                        "version_number",
+                        "status",
+                    ],
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
                 "table": {"schema": "public", "name": "profiles"},
                 "role": "user",
                 "permission": {
