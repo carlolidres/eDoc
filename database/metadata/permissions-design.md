@@ -88,6 +88,33 @@ Permissions: `select` only.
 | audit_events | select | — | — | — | select |
 | system_settings / security_settings | select, insert, update | — | — | — | select (security only) |
 
+## Phase 7 — field placement (applied)
+
+`signature_fields` insert is now granted to the `user` Hasura role, scoped so only the **document owner** can
+place fields for assignees on their own routes: `check: { assignee_row: { step: { route: { document: { owner_id:
+{ _eq: X-Hasura-User-Id } } } } } }` (`OWNER_STEP_FILTER` via the `assignee_row` relationship, the same pattern
+already used for `route_step_assignees`/`route_steps`/`document_routes` insert). The existing select permission
+(previously assignee-only) now also allows the document owner to read fields they placed, via the same
+`assignee_row` → `OWNER_STEP_FILTER` path, `_or`-combined with the original assignee-scoped filter. No
+`update`/`delete` permission was added — the creation wizard batches field placement client-side and only
+inserts once at send time, so corrections before sending do not require a server-side edit path.
+
+## Phase 9 — administration reads (applied)
+
+Org-configuration tables (`roles`, `user_roles`, `departments`, `document_types`, `document_categories`,
+`system_settings`, `security_settings`) are readable by the `user` Hasura role only when the requesting
+profile holds `Organization Administrator` or `Super Administrator` in `user_roles` (`ADMIN_ORG_FILTER` in
+`database/scripts/setup_hasura_metadata.py`) — the same "single app role + row filter" pattern used for the
+`auditor` scope. Non-admins receive zero rows, not an error. Two carve-outs:
+
+- `user_roles`/`roles` also allow each profile to read its **own** role assignment (`profile_id = X-Hasura-User-Id`),
+  so any signed-in user can determine their own roles without being an admin.
+- `organizations` is readable org-wide (`ORGANIZATION_SELF_FILTER`) since the org name/slug is low-sensitivity.
+
+No write (`insert`/`update`/`delete`) permissions were added for these tables in Phase 9 — administration
+remains read-only in the UI. CRUD (create user, assign role, edit department) requires Worker-side mutation
+endpoints with an explicit admin-role check and is deferred pending a dedicated review.
+
 ## Mutations restricted to Worker
 
 These operations must **not** have client Hasura `insert`/`update` permissions:

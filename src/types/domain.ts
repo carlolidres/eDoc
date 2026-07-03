@@ -13,6 +13,51 @@ export type DocumentStatus =
 
 export type RouteAction = 'review' | 'approve' | 'sign' | 'acknowledge'
 
+export type SignatureFieldType =
+  | 'signature'
+  | 'initial'
+  | 'name'
+  | 'job_title'
+  | 'date_signed'
+  | 'text'
+  | 'checkbox'
+  | 'approval_meaning'
+  | 'review_meaning'
+  | 'acknowledgment'
+
+const fieldTypeLabels: Record<SignatureFieldType, string> = {
+  signature: 'Signature',
+  initial: 'Initials',
+  name: 'Printed name',
+  job_title: 'Job title',
+  date_signed: 'Date signed',
+  text: 'Text',
+  checkbox: 'Checkbox',
+  approval_meaning: 'Approval statement',
+  review_meaning: 'Review statement',
+  acknowledgment: 'Acknowledgment statement',
+}
+
+export function signatureFieldTypeLabel(fieldType: SignatureFieldType): string {
+  return fieldTypeLabels[fieldType]
+}
+
+/** Field types offered for a given route step action, most relevant first. */
+export function fieldTypesForAction(action: RouteAction): SignatureFieldType[] {
+  switch (action) {
+    case 'sign':
+      return ['signature', 'initial', 'name', 'date_signed', 'job_title', 'text']
+    case 'approve':
+      return ['approval_meaning', 'date_signed', 'name', 'text']
+    case 'review':
+      return ['review_meaning', 'date_signed', 'name', 'text']
+    case 'acknowledge':
+      return ['acknowledgment', 'date_signed', 'name', 'text']
+    default:
+      return ['text']
+  }
+}
+
 export interface DashboardMetrics {
   awaitingMyAction: number
   myDrafts: number

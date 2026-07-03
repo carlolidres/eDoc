@@ -36,6 +36,14 @@ export const CREATE_DOCUMENT_ROUTE = `
   }
 `
 
+export const INSERT_SIGNATURE_FIELDS = `
+  mutation InsertSignatureFields($objects: [signature_fields_insert_input!]!) {
+    insert_signature_fields(objects: $objects) {
+      affected_rows
+    }
+  }
+`
+
 export const UPDATE_DOCUMENT_STATUS = `
   mutation UpdateDocumentStatus($id: uuid!, $status: String!) {
     update_documents_by_pk(pk_columns: { id: $id }, _set: { status: $status }) {
@@ -75,6 +83,10 @@ export type CreateDocumentRouteResponse = {
       }>
     }>
   } | null
+}
+
+export type InsertSignatureFieldsResponse = {
+  insert_signature_fields: { affected_rows: number } | null
 }
 
 export type UpdateDocumentStatusResponse = {

@@ -459,6 +459,83 @@ def create_relationships(endpoint: str, admin_secret: str) -> None:
                 },
             },
         },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "user_roles"},
+                "name": "profile",
+                "using": {"foreign_key_constraint_on": "profile_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "roles"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_array_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "roles"},
+                "name": "user_roles",
+                "using": {
+                    "foreign_key_constraint_on": {
+                        "table": {"schema": "public", "name": "user_roles"},
+                        "column": "role_id",
+                    }
+                },
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "departments"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_types"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_types"},
+                "name": "category",
+                "using": {"foreign_key_constraint_on": "category_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_categories"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
+        {
+            "type": "pg_create_object_relationship",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "system_settings"},
+                "name": "organization",
+                "using": {"foreign_key_constraint_on": "organization_id"},
+            },
+        },
     ]
     for rel in relationships:
         try:
@@ -514,6 +591,35 @@ AUDITOR_ORG_FILTER = {
         }
     }
 }
+ADMIN_ROLE_NAMES = ["Organization Administrator", "Super Administrator"]
+# Phase 9: administration reads. Same "user" Hasura role as everyone else; the row filter
+# below (not a separate Hasura role) restricts these org-configuration tables to profiles
+# that hold an admin role in `user_roles`, so non-admin members simply see zero rows.
+ADMIN_ORG_FILTER = {
+    "organization": {
+        "profiles": {
+            "_and": [
+                {"id": {"_eq": "X-Hasura-User-Id"}},
+                {"user_roles": {"role": {"name": {"_in": ADMIN_ROLE_NAMES}}}},
+            ]
+        }
+    }
+}
+ADMIN_ORG_FILTER_VIA_PROFILE = {"profile": ADMIN_ORG_FILTER}
+# Everyone may read their own role assignment (needed to know their own permissions);
+# admins may additionally read every assignment in their organization.
+USER_ROLES_FILTER = {
+    "_or": [
+        ADMIN_ORG_FILTER_VIA_PROFILE,
+        {"profile_id": {"_eq": "X-Hasura-User-Id"}},
+    ]
+}
+ROLES_FILTER = {
+    "_or": [
+        ADMIN_ORG_FILTER,
+        {"user_roles": {"profile_id": {"_eq": "X-Hasura-User-Id"}}},
+    ]
+}
 AUDIT_EVENTS_USER_FILTER = {
     "_or": [
         {"document": ASSIGNEE_DOCUMENT_FILTER},
@@ -544,9 +650,15 @@ def drop_user_permission(endpoint: str, admin_secret: str, table_name: str, perm
 
 def apply_permissions(endpoint: str, admin_secret: str) -> None:
     """Apply user-role permissions for Phase 5 reads and wizard routing inserts."""
-    for table_name in ("route_step_assignees", "route_steps", "document_routes", "profiles", "documents", "document_versions", "document_files", "signature_fields", "audit_events", "signature_events", "completion_certificates", "security_settings"):
+    for table_name in (
+        "route_step_assignees", "route_steps", "document_routes", "profiles", "documents",
+        "document_versions", "document_files", "signature_fields", "audit_events",
+        "signature_events", "completion_certificates", "security_settings",
+        "roles", "user_roles", "departments", "document_types", "document_categories",
+        "system_settings", "organizations",
+    ):
         drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_select_permission")
-    for table_name in ("documents", "document_routes", "route_steps", "route_step_assignees"):
+    for table_name in ("documents", "document_routes", "route_steps", "route_step_assignees", "signature_fields"):
         drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_update_permission")
         drop_user_permission(endpoint, admin_secret, table_name, "pg_drop_insert_permission")
 
@@ -721,7 +833,36 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                         "height",
                         "required",
                     ],
-                    "filter": {"assignee_row": {"assignee_id": {"_eq": "X-Hasura-User-Id"}}},
+                    "filter": {
+                        "_or": [
+                            {"assignee_row": {"assignee_id": {"_eq": "X-Hasura-User-Id"}}},
+                            {"assignee_row": OWNER_STEP_FILTER},
+                        ]
+                    },
+                },
+            },
+        },
+        {
+            "type": "pg_create_insert_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "signature_fields"},
+                "role": "user",
+                "permission": {
+                    "check": {"assignee_row": OWNER_STEP_FILTER},
+                    "columns": [
+                        "organization_id",
+                        "document_id",
+                        "version_id",
+                        "assignee_id",
+                        "field_type",
+                        "page_number",
+                        "x",
+                        "y",
+                        "width",
+                        "height",
+                        "required",
+                    ],
                 },
             },
         },
@@ -962,7 +1103,119 @@ def apply_permissions(endpoint: str, admin_secret: str) -> None:
                 continue
             raise RuntimeError(f"Permission failed: {body}") from error
     print("User-role permissions applied.")
+    apply_admin_permissions(endpoint, admin_secret)
     apply_auditor_permissions(endpoint, admin_secret)
+
+
+def apply_admin_permissions(endpoint: str, admin_secret: str) -> None:
+    """Phase 9: org-configuration reads for the `user` role, scoped to admin members via ADMIN_ORG_FILTER."""
+    admin_permissions = [
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "organizations"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "name", "slug", "created_at"],
+                    "filter": ORGANIZATION_SELF_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "roles"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "organization_id", "name", "is_system"],
+                    "filter": ROLES_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "user_roles"},
+                "role": "user",
+                "permission": {
+                    "columns": ["profile_id", "role_id"],
+                    "filter": USER_ROLES_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "departments"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "organization_id", "business_unit_id", "name"],
+                    "filter": ADMIN_ORG_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_types"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "organization_id", "name", "category_id"],
+                    "filter": ADMIN_ORG_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "document_categories"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "organization_id", "name", "parent_id"],
+                    "filter": ADMIN_ORG_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "system_settings"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "organization_id", "setting_key", "setting_value_json", "updated_at"],
+                    "filter": ADMIN_ORG_FILTER,
+                },
+            },
+        },
+        {
+            "type": "pg_create_select_permission",
+            "args": {
+                "source": "default",
+                "table": {"schema": "public", "name": "security_settings"},
+                "role": "user",
+                "permission": {
+                    "columns": ["id", "organization_id", "session_timeout_minutes", "mfa_required", "updated_at"],
+                    "filter": ADMIN_ORG_FILTER,
+                },
+            },
+        },
+    ]
+    for permission in admin_permissions:
+        try:
+            metadata_request(endpoint, admin_secret, permission)
+        except urllib.error.HTTPError as error:
+            body = error.read().decode("utf-8", errors="replace")
+            if "already exists" in body.lower() or "already defined" in body.lower():
+                continue
+            raise RuntimeError(f"Admin permission failed: {body}") from error
+    print("Admin-scoped org-configuration permissions applied.")
 
 
 AUDITOR_AUDIT_COLUMNS = [

@@ -141,6 +141,16 @@ label { display: grid; gap: 7px; color: var(--brand-dark); font-weight: 800; }
 .pdf-canvas { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 .pdf-viewer-state { display: grid; place-items: center; min-height: 280px; color: var(--muted); }
 .pdf-viewer-error { color: var(--danger); }
+.field-placement-toolbar { grid-template-columns: repeat(2, minmax(0, 220px)); margin-top: 0; }
+.field-placement-hint { margin: 10px 0; color: var(--muted); font-size: .85rem; }
+.field-placement-stage { position: relative; display: inline-block; }
+.field-placement-overlay { position: absolute; inset: 0; cursor: crosshair; }
+.field-placement-box { position: absolute; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 2px 4px; border: 1.5px solid var(--brand); background: color-mix(in srgb, var(--brand) 18%, transparent); border-radius: 4px; font-size: .68rem; font-weight: 800; color: var(--brand-dark); overflow: hidden; }
+.field-placement-box span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.field-placement-box button { border: 0; background: transparent; color: var(--brand-dark); font-weight: 900; cursor: pointer; line-height: 1; padding: 0 2px; }
+.field-placement-box.preview { border-style: dashed; background: color-mix(in srgb, var(--brand) 10%, transparent); pointer-events: none; }
+.field-placement-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.field-placement-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-muted); font-size: .85rem; }
 .modal-scrim { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 20px; background: rgba(15, 23, 42, 0.45); }
 .modal-card { display: grid; gap: 14px; width: min(480px, 100%); padding: 22px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); box-shadow: var(--shadow); }
 .checkbox-row { display: flex; align-items: flex-start; gap: 10px; font-weight: 500; color: var(--text); }

@@ -26,10 +26,11 @@ Do not duplicate database schema details here. Database work belongs in `DATA_MA
 | Dashboard | `src/pages/DashboardPage.tsx` | KPI cards, awaiting action, activity (placeholder → GraphQL) |
 | Inbox | `src/pages/InboxPage.tsx` | Assigned review/approve/sign/ack tasks |
 | Documents | `src/pages/DocumentsPage.tsx` | Document lists, filters, status views |
-| Create document | `src/pages/CreateDocumentPage.tsx` | Multi-step creation wizard scaffold |
+| Create document | `src/pages/CreateDocumentPage.tsx` | 5-step creation wizard: metadata, upload, routing, PDF field placement, review and send |
 | Routing templates | `src/pages/RoutingTemplatesPage.tsx` | Reusable route templates |
 | Signing workspace | `src/pages/SigningWorkspacePage.tsx` | PDF viewer, fields, route actions |
 | PDF viewer | `src/components/pdf/PdfViewer.tsx` | Lazy PDF.js rendering with zoom and thumbnails |
+| Field placement viewer | `src/components/pdf/FieldPlacementViewer.tsx` | Lazy PDF.js rendering with drag-to-draw signature-field overlay (creation wizard step) |
 | Sign dialog | `src/components/signing/SignDialog.tsx` | Re-auth, consent, typed signature |
 | Reports | `src/pages/ReportsPage.tsx` | Reporting and export scaffold |
 | Admin | `src/pages/AdminPage.tsx` | Users/roles/departments/document types/security settings (Hasura-scoped to admin role); links to routing templates and reports |

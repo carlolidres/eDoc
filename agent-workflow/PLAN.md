@@ -98,8 +98,8 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 - Signing workspace actions; re-authentication
 - Immutable signed PDF generation and signature events
 
-**Done:** Secure PDF preview via Worker, PDF.js viewer in signing workspace, sign endpoint with re-auth/consent/hash verify, signed PDF storage, signature events, route advance after sign.  
-**Remaining:** Field placement wizard UI (PDF-AC-001–003), drawn/uploaded signature modes, Worker deploy + live E2E.
+**Done:** Secure PDF preview via Worker, PDF.js viewer in signing workspace, sign endpoint with re-auth/consent/hash verify, signed PDF storage, signature events, route advance after sign. Field-placement wizard step (`src/components/pdf/FieldPlacementViewer.tsx`) — draw signature/approval/review/acknowledgment fields per assignee on the uploaded PDF; wizard routing step now creates a draft route without starting it; new "Review and send" step bulk-inserts `signature_fields` and starts the route together. Hasura `signature_fields` insert permission (owner-scoped) applied to dev and live-verified.  
+**Remaining:** Live end-to-end wizard walkthrough (create→route→place→send→sign); drawn/uploaded signature *image* modes (typed signature only today); Worker `applySignatureToPdf` does not render `name`/`job_title`/`text`/`checkbox` field values on the signed PDF.
 
 ### Phase 8: Completion and audit — `IN_PROGRESS`
 
@@ -162,6 +162,7 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 ## Next Action
 
-1. Deploy Pages (v15) so the live Admin page reflects Phase 9 reads.
-2. Scope and implement Phase 9 admin write endpoints (Worker + admin-role check) if the project owner wants in-app user/role/department management rather than SQL scripts.
-3. Phase 7 field-placement wizard, or begin Phase 10 (expanded automated test coverage, Playwright in CI, Worker deploy via CI).
+1. Commit and deploy Pages (v16) so the live app reflects the Phase 7 field-placement wizard.
+2. Live end-to-end wizard walkthrough (create → route → place fields → send → sign).
+3. Begin Phase 10 (expanded automated test coverage, Playwright in CI, Worker deploy via CI).
+4. Phase 9 admin write endpoints (invite/assign-role/manage-department) remain deferred as a documented follow-up.

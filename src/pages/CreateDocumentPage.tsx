@@ -1,18 +1,22 @@
-import { useState, type FormEvent } from 'react'
+import { lazy, Suspense, useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { EmptyState } from '../components/ui/EmptyState'
+import type { FieldAssigneeOption, SignatureFieldDraft } from '../components/pdf/FieldPlacementViewer'
 import { useAuth } from '../features/auth/AuthProvider'
 import {
   CREATE_DOCUMENT,
   CREATE_DOCUMENT_ROUTE,
   CREATE_DOCUMENT_VERSION,
+  INSERT_SIGNATURE_FIELDS,
   UPDATE_DOCUMENT_STATUS,
   type CreateDocumentResponse,
   type CreateDocumentRouteResponse,
   type CreateDocumentVersionResponse,
+  type InsertSignatureFieldsResponse,
   type UpdateDocumentStatusResponse,
 } from '../graphql/mutations'
 import { useCurrentProfile } from '../hooks/useCurrentProfile'
+import { useFilePreview } from '../hooks/useFilePreview'
 import { useGraphQLMutation } from '../hooks/useGraphQLMutation'
 import { useOrgProfiles } from '../hooks/useOrgProfiles'
 import {
@@ -22,8 +26,12 @@ import {
   uploadPdfToWorker,
 } from '../lib/documentUpload'
 import { startDocumentRoute } from '../lib/workerApi'
-import type { RouteAction } from '../types/domain'
+import { routeActionLabel, type RouteAction } from '../types/domain'
 import { validatePdfFile } from '../utils/fileValidation'
+
+const FieldPlacementViewer = lazy(() =>
+  import('../components/pdf/FieldPlacementViewer').then((module) => ({ default: module.FieldPlacementViewer })),
+)
 
 const steps = ['Document information', 'Upload', 'Recipients and routing', 'PDF field placement', 'Review and send']
 
@@ -67,6 +75,9 @@ export function CreateDocumentPage() {
   const createRoute = useGraphQLMutation<CreateDocumentRouteResponse, { object: Record<string, unknown> }>(
     CREATE_DOCUMENT_ROUTE,
   )
+  const insertFields = useGraphQLMutation<InsertSignatureFieldsResponse, { objects: Record<string, unknown>[] }>(
+    INSERT_SIGNATURE_FIELDS,
+  )
   const updateStatus = useGraphQLMutation<UpdateDocumentStatusResponse, { id: string; status: string }>(
     UPDATE_DOCUMENT_STATUS,
   )
@@ -79,13 +90,24 @@ export function CreateDocumentPage() {
   const [formError, setFormError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [uploadComplete, setUploadComplete] = useState(false)
+  const [previewFileId, setPreviewFileId] = useState<string | null>(null)
   const [routeSteps, setRouteSteps] = useState<RouteStepDraft[]>([newRouteStep()])
   const [isSavingRoute, setIsSavingRoute] = useState(false)
-  const [routeSaved, setRouteSaved] = useState(false)
+  const [routeId, setRouteId] = useState<string | null>(null)
+  const [assigneeOptions, setAssigneeOptions] = useState<FieldAssigneeOption[]>([])
+  const [fields, setFields] = useState<SignatureFieldDraft[]>([])
+  const [isSending, setIsSending] = useState(false)
   const [routeStarted, setRouteStarted] = useState(false)
+
+  const preview = useFilePreview(activeStep === 3 ? previewFileId ?? undefined : undefined)
 
   const organizationId = profile?.organization_id ?? null
   const canUseWizard = usesNhost && Boolean(organizationId) && Boolean(accessToken)
+
+  const assigneesMissingFields = useMemo(
+    () => assigneeOptions.filter((option) => !fields.some((field) => field.assigneeRowId === option.id)),
+    [assigneeOptions, fields],
+  )
 
   function updateRouteStep(stepId: string, patch: Partial<RouteStepDraft>) {
     setRouteSteps((current) => current.map((step) => (step.id === stepId ? { ...step, ...patch } : step)))
@@ -194,6 +216,7 @@ export function CreateDocumentPage() {
         sizeBytes: selectedFile.size,
       })
 
+      setPreviewFileId(fileId)
       setUploadComplete(true)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Upload failed.')
@@ -250,20 +273,89 @@ export function CreateDocumentPage() {
         },
       })
 
-      if (!route.insert_document_routes_one) throw new Error('Route was not created.')
+      const createdRoute = route.insert_document_routes_one
+      if (!createdRoute) throw new Error('Route was not created.')
 
-      const updated = await updateStatus.mutateAsync({ id: documentId, status: 'ready_for_routing' })
-      if (!updated.update_documents_by_pk) throw new Error('Document status was not updated.')
+      const options: FieldAssigneeOption[] = createdRoute.route_steps.flatMap((step) =>
+        step.route_step_assignees.map((assignee) => {
+          const assigneeProfile = orgProfiles.find((candidate) => candidate.id === assignee.assignee_id)
+          const action = step.action as RouteAction
+          return {
+            id: assignee.id,
+            action,
+            label: `Step ${step.sequence} — ${routeActionLabel(action)} (${assigneeProfile?.display_name ?? 'Assignee'})`,
+          }
+        }),
+      )
 
-      if (!accessToken) throw new Error('Sign in again to start the route.')
-      await startDocumentRoute(route.insert_document_routes_one.id, accessToken)
-
-      setRouteSaved(true)
-      setRouteStarted(true)
+      setRouteId(createdRoute.id)
+      setAssigneeOptions(options)
+      setFields([])
+      setActiveStep(3)
     } catch (error) {
       setFormError(error instanceof Error ? error.message : 'Could not save routing.')
     } finally {
       setIsSavingRoute(false)
+    }
+  }
+
+  function handleAddField(field: SignatureFieldDraft) {
+    setFields((current) => [...current, field])
+  }
+
+  function handleRemoveField(localId: string) {
+    setFields((current) => current.filter((field) => field.localId !== localId))
+  }
+
+  function handleContinueToReview() {
+    setFormError(null)
+    if (assigneeOptions.length > 0 && assigneesMissingFields.length > 0) {
+      setFormError(
+        `Place at least one field for: ${assigneesMissingFields.map((option) => option.label).join(', ')}.`,
+      )
+      return
+    }
+    setActiveStep(4)
+  }
+
+  async function handleSend() {
+    setFormError(null)
+
+    if (!canUseWizard || !accessToken || !organizationId || !documentId || !versionId || !routeId) {
+      setFormError('Document draft is missing. Complete the earlier steps first.')
+      return
+    }
+
+    setIsSending(true)
+    try {
+      if (fields.length > 0) {
+        const inserted = await insertFields.mutateAsync({
+          objects: fields.map((field) => ({
+            organization_id: organizationId,
+            document_id: documentId,
+            version_id: versionId,
+            assignee_id: field.assigneeRowId,
+            field_type: field.fieldType,
+            page_number: field.pageNumber,
+            x: field.x,
+            y: field.y,
+            width: field.width,
+            height: field.height,
+            required: true,
+          })),
+        })
+        if (!inserted.insert_signature_fields) throw new Error('Signature fields were not saved.')
+      }
+
+      const updated = await updateStatus.mutateAsync({ id: documentId, status: 'ready_for_routing' })
+      if (!updated.update_documents_by_pk) throw new Error('Document status was not updated.')
+
+      await startDocumentRoute(routeId, accessToken)
+      setRouteStarted(true)
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Could not send the document.')
+    } finally {
+      setIsSending(false)
     }
   }
 
@@ -315,7 +407,7 @@ export function CreateDocumentPage() {
         <div>
           <span className="eyebrow">Wizard</span>
           <h2>Create document</h2>
-          <p>Save metadata, upload the PDF, and configure sequential routing. Field placement and send come in later phases.</p>
+          <p>Save metadata, upload the PDF, configure routing, place signature fields, then send.</p>
         </div>
       </section>
 
@@ -437,116 +529,174 @@ export function CreateDocumentPage() {
         ) : null}
 
         {activeStep === 2 ? (
-          routeSaved ? (
+          <form className="form-grid" onSubmit={handleRoutingSubmit}>
+            <p className="span-2">
+              Sequential routing — each step runs in order. Assign at least one recipient per step.
+            </p>
+            {profilesLoading ? (
+              <p className="span-2">Loading organization members…</p>
+            ) : orgProfiles.length === 0 ? (
+              <p className="span-2 form-error">
+                No organization profiles found. Sync your Nhost user via database/scripts/sync_nhost_profile.py.
+              </p>
+            ) : (
+              routeSteps.map((step, index) => (
+                <div className="span-2 form-grid" key={step.id}>
+                  <label>
+                    Step {index + 1} — action
+                    <select
+                      value={step.action}
+                      onChange={(event) =>
+                        updateRouteStep(step.id, { action: event.target.value as RouteAction })
+                      }
+                    >
+                      {routeActions.map((action) => (
+                        <option key={action} value={action}>
+                          {action}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Assignee
+                    <select
+                      required
+                      value={step.assigneeId}
+                      onChange={(event) => updateRouteStep(step.id, { assigneeId: event.target.value })}
+                    >
+                      <option value="">Select assignee</option>
+                      {orgProfiles.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.display_name} ({member.email})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Due date (optional)
+                    <input
+                      type="date"
+                      value={step.dueAt}
+                      onChange={(event) => updateRouteStep(step.id, { dueAt: event.target.value })}
+                    />
+                  </label>
+                  <div className="button-row">
+                    {routeSteps.length > 1 ? (
+                      <button className="button" type="button" onClick={() => removeRouteStep(step.id)}>
+                        Remove step
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              ))
+            )}
+            <div className="button-row span-2">
+              <button className="button" type="button" onClick={addRouteStep} disabled={isSavingRoute}>
+                Add step
+              </button>
+            </div>
+            <div className="button-row span-2">
+              <button
+                className="button"
+                type="button"
+                onClick={() => setActiveStep(1)}
+                disabled={isSavingRoute}
+              >
+                Back
+              </button>
+              <button
+                className="button primary"
+                type="submit"
+                disabled={isSavingRoute || profilesLoading || orgProfiles.length === 0}
+              >
+                {isSavingRoute ? 'Saving…' : 'Save routing'}
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {activeStep === 3 ? (
+          <div className="form-grid">
+            <div className="span-2">
+              {!previewFileId ? (
+                <EmptyState title="PDF not available" description="Upload the document before placing fields." />
+              ) : preview.isLoading ? (
+                <EmptyState title="Preparing preview…" description="Requesting a secure preview URL." />
+              ) : preview.isError ? (
+                <EmptyState title="Could not load preview" description={preview.error?.message ?? 'Worker preview failed.'} />
+              ) : preview.data?.previewUrl && accessToken ? (
+                <Suspense fallback={<EmptyState title="Loading viewer…" description="Starting PDF.js." />}>
+                  <FieldPlacementViewer
+                    url={preview.data.previewUrl}
+                    accessToken={accessToken}
+                    assigneeOptions={assigneeOptions}
+                    fields={fields}
+                    onAddField={handleAddField}
+                    onRemoveField={handleRemoveField}
+                  />
+                </Suspense>
+              ) : (
+                <EmptyState title="Preview unavailable" description="Secure preview URL was not returned." />
+              )}
+            </div>
+            {fields.length > 0 ? (
+              <div className="span-2">
+                <span className="eyebrow">Placed fields ({fields.length})</span>
+                <ul className="field-placement-list">
+                  {fields.map((field) => (
+                    <li key={field.localId}>
+                      <span>Page {field.pageNumber} — {field.assigneeLabel} — {field.fieldType}</span>
+                      <button className="button" type="button" onClick={() => handleRemoveField(field.localId)}>
+                        Remove
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <div className="button-row span-2">
+              <button className="button" type="button" onClick={() => setActiveStep(2)}>
+                Back
+              </button>
+              <button className="button primary" type="button" onClick={handleContinueToReview}>
+                Continue to review
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {activeStep === 4 ? (
+          routeStarted ? (
             <div className="form-grid">
               <div className="span-2">
                 <EmptyState
-                  title={routeStarted ? 'Route sent' : 'Routing saved'}
-                  description={
-                    routeStarted
-                      ? 'The route is active and assignees can see their tasks in the inbox.'
-                      : 'The draft route is stored and the document is ready for routing.'
-                  }
+                  title="Route sent"
+                  description="The route is active and assignees can see their tasks in the inbox."
                 />
               </div>
               <div className="button-row span-2">
-                {routeStarted ? <Link className="button" to="/inbox">Open inbox</Link> : null}
+                <Link className="button" to="/inbox">Open inbox</Link>
                 <Link className="button primary" to="/documents">View documents</Link>
               </div>
             </div>
           ) : (
-            <form className="form-grid" onSubmit={handleRoutingSubmit}>
-              <p className="span-2">
-                Sequential routing — each step runs in order. Assign at least one recipient per step.
-              </p>
-              {profilesLoading ? (
-                <p className="span-2">Loading organization members…</p>
-              ) : orgProfiles.length === 0 ? (
-                <p className="span-2 form-error">
-                  No organization profiles found. Sync your Nhost user via database/scripts/sync_nhost_profile.py.
-                </p>
-              ) : (
-                routeSteps.map((step, index) => (
-                  <div className="span-2 form-grid" key={step.id}>
-                    <label>
-                      Step {index + 1} — action
-                      <select
-                        value={step.action}
-                        onChange={(event) =>
-                          updateRouteStep(step.id, { action: event.target.value as RouteAction })
-                        }
-                      >
-                        {routeActions.map((action) => (
-                          <option key={action} value={action}>
-                            {action}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Assignee
-                      <select
-                        required
-                        value={step.assigneeId}
-                        onChange={(event) => updateRouteStep(step.id, { assigneeId: event.target.value })}
-                      >
-                        <option value="">Select assignee</option>
-                        {orgProfiles.map((member) => (
-                          <option key={member.id} value={member.id}>
-                            {member.display_name} ({member.email})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Due date (optional)
-                      <input
-                        type="date"
-                        value={step.dueAt}
-                        onChange={(event) => updateRouteStep(step.id, { dueAt: event.target.value })}
-                      />
-                    </label>
-                    <div className="button-row">
-                      {routeSteps.length > 1 ? (
-                        <button className="button" type="button" onClick={() => removeRouteStep(step.id)}>
-                          Remove step
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                ))
-              )}
-              <div className="button-row span-2">
-                <button className="button" type="button" onClick={addRouteStep} disabled={isSavingRoute}>
-                  Add step
-                </button>
+            <div className="form-grid">
+              <div className="span-2">
+                <p><strong>Title:</strong> {metadata.title}</p>
+                {metadata.referenceNumber ? <p><strong>Reference:</strong> {metadata.referenceNumber}</p> : null}
+                <p><strong>Routing steps:</strong> {assigneeOptions.length}</p>
+                <p><strong>Signature fields placed:</strong> {fields.length}</p>
               </div>
               <div className="button-row span-2">
-                <button
-                  className="button"
-                  type="button"
-                  onClick={() => setActiveStep(1)}
-                  disabled={isSavingRoute}
-                >
+                <button className="button" type="button" onClick={() => setActiveStep(3)} disabled={isSending}>
                   Back
                 </button>
-                <button
-                  className="button primary"
-                  type="submit"
-                  disabled={isSavingRoute || profilesLoading || orgProfiles.length === 0}
-                >
-                  {isSavingRoute ? 'Saving…' : 'Save routing'}
+                <button className="button primary" type="button" onClick={() => void handleSend()} disabled={isSending}>
+                  {isSending ? 'Sending…' : 'Send document'}
                 </button>
               </div>
-            </form>
+            </div>
           )
-        ) : null}
-
-        {activeStep > 2 ? (
-          <EmptyState
-            title="Step not available yet"
-            description="PDF field placement and send actions will be enabled in later phases."
-          />
         ) : null}
       </section>
     </div>
