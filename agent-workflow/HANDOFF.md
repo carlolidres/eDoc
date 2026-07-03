@@ -3,8 +3,8 @@
 Last Updated: `2026-07-03`
 Version: `v17` (Phase 10 CI/test expansion; v16 Phase 7 field-placement wizard deployed; v15 Phase 9 admin reads deployed)
 Branch: `master`
-Commit: `6e0d91a` (v16, deployed to Pages); Phase 10 changes pending commit as v17
-Deployment: `PAGES_DEPLOYED` (v16 live at https://carlolidres.github.io/eDoc/); Worker unchanged (v14)
+Commit: `d94ffac` (v17, deployed to Pages)
+Deployment: `PAGES_DEPLOYED` (v17 live at https://carlolidres.github.io/eDoc/, verified HTTP 200 with new asset hash); Worker unchanged (v14)
 
 ## Current Status
 
@@ -61,7 +61,7 @@ Phase 10 (started): found and fixed a stale, always-failing Playwright test (`te
 
 - Acceptance criteria: `COMPLETE` for Phase 8 AUDIT-AC-003/auditor scope and Phase 9 read views. Phase 7 field-placement UI `COMPLETE` for placement + persistence; drawn/uploaded signature *image* modes remain out of scope (typed signature only, unchanged from existing sign flow).
 - Instruction conflicts: `NONE`
-- Repository status: `DIRTY` (Phase 10 changes pending commit as v17 at time of writing; v15/v16 committed and deployed)
+- Repository status: `CLEAN` (v15, v16, v17 committed and pushed)
 - Build/database/runtime status: `BUILD_PASSING`, `HASURA_METADATA_APPLIED` (dev, Phase 9 and Phase 7 permissions), `WORKER_DEPLOYED` (v14; unchanged), `PAGES_DEPLOYED` (v16 live)
 - Last known working state: `npm run type-check`, `npm run test` (18/18, 8 files), `npm run worker:check`, `npm run lint`, `npm run build` all pass. `npx playwright test tests/e2e/app.spec.ts` passes locally without Nhost env configured.
 
@@ -93,15 +93,16 @@ Phase 10 (started): found and fixed a stale, always-failing Playwright test (`te
 | v15 GitHub Pages deploy | `PASS` (after 1 retry) | Run `28665492942`; build/lint/type-check/test/build all green; first `deploy-pages` attempt hit a transient platform error, `gh run rerun --failed` succeeded |
 | v16 GitHub Pages deploy | `PASS` (after 1 retry) | Run `28665746876`; same transient `deploy-pages` error on first attempt, succeeded on retry; live site returns HTTP 200 |
 | `npx playwright test tests/e2e/app.spec.ts` | `PASS` | Ran locally with `.env` temporarily removed to simulate the CI `e2e` job (no live credentials) |
-| v17 GitHub Pages deploy + new `e2e` CI job | `NOT_RUN` | Pending commit + push |
-| Live wizard walkthrough (create→route→place fields→send→sign) | `NOT_RUN` | Not attempted this session; recommend after v17 push, using a browser session against the live site |
+| v17 GitHub Pages deploy + new `e2e` CI job | `PASS` (`e2e` job passed on first attempt; `deploy` job passed after 3 retries) | Run `28666573199`; `build` and `e2e` jobs both green on the first attempt (confirming the new CI job works on GitHub Actions, not just locally); `deploy-pages` hit the same transient "Deployment failed, try again later." error three times in a row before succeeding — more retries than the single-retry pattern seen on v15/v16, but GitHub status page showed no incident, so treated as platform flakiness rather than a config regression |
+| Live site reachability post-v17 | `PASS` | `https://carlolidres.github.io/eDoc/` returns HTTP 200 with a new asset hash (`index-D8iyfLuY.js`), confirming the new build is served |
+| Live wizard walkthrough (create→route→place fields→send→sign) | `NOT_RUN` | Not attempted this session; recommend next, using a browser session against the live site |
 
 ## Next Action
 
-1. Commit and push Phase 10 (v17); confirm the new `e2e` CI job passes on GitHub Actions (not just locally).
-2. Manually or via Playwright, walk through the full wizard (metadata → upload → routing → field placement → send) against the live site, then sign as the assignee to confirm end-to-end.
-3. Decide whether to add `E2E_EMAIL`/`E2E_PASSWORD` as GitHub secrets to run the live Playwright specs in CI, and whether to add a Cloudflare API token secret for Worker deploy via CI.
-4. Phase 9 admin write endpoints (invite/assign-role/manage-department) remain deferred — no blocker surfaced that requires them.
+1. Manually or via Playwright, walk through the full wizard (metadata → upload → routing → field placement → send) against the live v17 site, then sign as the assignee to confirm end-to-end.
+2. Decide whether to add `E2E_EMAIL`/`E2E_PASSWORD` as GitHub secrets to run the live Playwright specs in CI, and whether to add a Cloudflare API token secret for Worker deploy via CI.
+3. Phase 9 admin write endpoints (invite/assign-role/manage-department) remain deferred — no blocker surfaced that requires them.
+4. If GitHub Pages deploy failures continue to require 2+ retries on future pushes, consider filing a note with GitHub support or adding a retry loop to the workflow itself (e.g. a `for` loop around `deploy-pages`, or switching to the `peaceiris/actions-gh-pages` action) — not done here since it wasn't asked for and 3 retries still succeeded.
 
 Historical evidence: `agent-history/version-1-handoff.md`
 
