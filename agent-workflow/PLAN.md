@@ -117,11 +117,14 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 **Also fixed:** `CURRENT_PROFILE` query (frontend) and the `e2e_sign_flow.py`/`e2e_wizard_upload.py` "load current profile" queries used an unfiltered `profiles(limit: 1)`, which returned an arbitrary org peer's row once the organization had more than one profile (surfaced by the Phase 8 Auditor test user). Now filtered by the signed-in user's id. Live E2E sign flow re-verified 15/15 after the fix.
 **Remaining:** Write operations (invite user, assign/revoke role, create department/document type) via Worker endpoints with an admin-role check; permissions matrix, retention rules, and email template admin views (currently placeholders).
 
-### Phase 10: Testing and deployment — `NOT_STARTED`
+### Phase 10: Testing and deployment — `IN_PROGRESS`
 
 - Unit, integration, Playwright suites per baseline
 - GitHub Actions: lint, typecheck, test, Pages deploy
 - Worker Wrangler deployment; documentation verification
+
+**Done:** Fixed a stale/broken Playwright scaffold (`tests/e2e/app.spec.ts` used `getByLabel`, which timed out — switched to the `getByRole('textbox', ...)` pattern already used by the newer live specs; verified it passes locally without Nhost env configured, i.e. against the local-fallback auth path). Added a new `e2e` job to `.github/workflows/pages.yml` that installs Chromium and runs this credential-free smoke test on every push (independent of the `deploy` job, so it cannot block deploys). Added `src/types/domain.test.ts` for the new Phase 7 field-type-per-action mapping (Ponytail non-trivial-logic check).
+**Remaining:** `tests/e2e/login-nav-fix.spec.ts` and `tests/e2e/phase8-live.spec.ts` need live `E2E_EMAIL`/`E2E_PASSWORD` and are not wired into CI (would require storing a live test-user password as a GitHub secret — a credential/scope decision for the project owner). Worker deploy via CI (Wrangler + Cloudflare API token secret) not implemented — no Cloudflare API token available in this environment.
 
 ## Expected Files (near term)
 
@@ -162,7 +165,6 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 ## Next Action
 
-1. Commit and deploy Pages (v16) so the live app reflects the Phase 7 field-placement wizard.
-2. Live end-to-end wizard walkthrough (create → route → place fields → send → sign).
-3. Begin Phase 10 (expanded automated test coverage, Playwright in CI, Worker deploy via CI).
-4. Phase 9 admin write endpoints (invite/assign-role/manage-department) remain deferred as a documented follow-up.
+1. Live end-to-end wizard walkthrough (create → route → place fields → send → sign) against the deployed v16 site.
+2. Decide whether to add `E2E_EMAIL`/`E2E_PASSWORD` as GitHub secrets to run the live Playwright specs in CI, and whether to add a Cloudflare API token secret for Worker deploy via CI.
+3. Phase 9 admin write endpoints (invite/assign-role/manage-department) remain deferred as a documented follow-up.

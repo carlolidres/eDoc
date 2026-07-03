@@ -91,7 +91,10 @@ Do not duplicate database schema details here. Database work belongs in `DATA_MA
 |---|---|
 | `src/utils/routingRules.test.ts` | Routing rule unit tests |
 | `src/utils/fileValidation.test.ts` | File validation unit tests |
-| `tests/e2e/app.spec.ts` | Playwright E2E scaffold |
+| `src/types/domain.test.ts` | Field-type-per-route-action mapping unit tests |
+| `tests/e2e/app.spec.ts` | Playwright smoke test (local-fallback auth, no credentials needed); runs in CI (`.github/workflows/pages.yml` `e2e` job) |
+| `tests/e2e/login-nav-fix.spec.ts`, `tests/e2e/phase8-live.spec.ts` | Playwright live-Nhost regression checks; self-skip without `E2E_EMAIL`/`E2E_PASSWORD` — not run in CI (would need live test-user secrets) |
+| `database/scripts/e2e_wizard_upload.py`, `database/scripts/e2e_sign_flow.py` | Live smoke scripts against deployed Worker/Hasura (manual, need `.dev.vars`/`.env` credentials) |
 | `workflow-app/scripts/validate_schema.py` | Workflow SQLite schema validation |
 | `workflow-app/scripts/smoke_test.py` | Workflow app end-to-end smoke test |
 
