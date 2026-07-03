@@ -32,7 +32,7 @@ Do not duplicate database schema details here. Database work belongs in `DATA_MA
 | PDF viewer | `src/components/pdf/PdfViewer.tsx` | Lazy PDF.js rendering with zoom and thumbnails |
 | Sign dialog | `src/components/signing/SignDialog.tsx` | Re-auth, consent, typed signature |
 | Reports | `src/pages/ReportsPage.tsx` | Reporting and export scaffold |
-| Admin | `src/pages/AdminPage.tsx` | Users, roles, org settings scaffold |
+| Admin | `src/pages/AdminPage.tsx` | Users/roles/departments/document types/security settings (Hasura-scoped to admin role); links to routing templates and reports |
 | Auth pages | `src/pages/LoginPage.tsx`, `ResetPasswordPage.tsx`, `ChangePasswordPage.tsx`, `VerifyEmailPage.tsx` | Sign-in, password reset/change, email verification |
 | Workflow app UI | `workflow-app/static/app.js` | Brief, baseline, feedback, debugging, handoff queue |
 
@@ -66,6 +66,8 @@ Do not duplicate database schema details here. Database work belongs in `DATA_MA
 | `src/hooks/useTheme.tsx` | Light/dark theme toggle |
 | `src/hooks/useGraphQLClient.ts` | GraphQL client bound to auth access token |
 | `src/hooks/useGraphQLQuery.ts` | TanStack Query wrapper for GraphQL requests |
+| `src/hooks/useAdminData.ts` | Phase 9 admin reads (users/roles/departments/document types/security settings) and `useIsOrgAdmin` gate |
+| `src/hooks/useCurrentProfile.ts` | Current user's own profile, filtered by Nhost user id (not an unfiltered `limit: 1`) |
 | `src/utils/routingRules.ts` | Sequential/parallel routing logic |
 | `src/utils/fileValidation.ts` | Upload MIME, size, hash validation |
 | `src/types/domain.ts` | Shared domain types |

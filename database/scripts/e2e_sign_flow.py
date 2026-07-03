@@ -171,8 +171,8 @@ def main() -> None:
         hasura_url,
         token,
         """
-        query CurrentProfile {
-          profiles(limit: 1) {
+        query CurrentProfile($profileId: uuid!) {
+          profiles(where: { id: { _eq: $profileId } }, limit: 1) {
             id
             organization_id
             display_name
@@ -180,6 +180,7 @@ def main() -> None:
           }
         }
         """,
+        {"profileId": args.user_id},
     )
     profile = profile_data["profiles"][0] if profile_data.get("profiles") else None
     if not profile:

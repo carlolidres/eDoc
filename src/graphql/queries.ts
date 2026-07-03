@@ -1,6 +1,6 @@
 export const CURRENT_PROFILE = `
-  query CurrentProfile {
-    profiles(limit: 1) {
+  query CurrentProfile($profileId: uuid!) {
+    profiles(where: { id: { _eq: $profileId } }, limit: 1) {
       id
       organization_id
       display_name
@@ -279,6 +279,126 @@ export const RECENT_AUDIT_EVENTS = `
     }
   }
 `
+
+export const ADMIN_ORGANIZATION = `
+  query AdminOrganization {
+    organizations(limit: 1) {
+      id
+      name
+      slug
+      created_at
+    }
+  }
+`
+
+export const MY_ROLES = `
+  query MyRoles($profileId: uuid!) {
+    user_roles(where: { profile_id: { _eq: $profileId } }) {
+      role {
+        name
+      }
+    }
+  }
+`
+
+export type MyRolesResponse = {
+  user_roles: Array<{ role: { name: string } | null }>
+}
+
+export const ADMIN_USERS = `
+  query AdminUsers {
+    profiles(order_by: { display_name: asc }) {
+      id
+      display_name
+      email
+      status
+      user_roles {
+        role {
+          id
+          name
+        }
+      }
+    }
+  }
+`
+
+export const ADMIN_ROLES = `
+  query AdminRoles {
+    roles(order_by: { name: asc }) {
+      id
+      name
+      is_system
+    }
+  }
+`
+
+export const ADMIN_DEPARTMENTS = `
+  query AdminDepartments {
+    departments(order_by: { name: asc }) {
+      id
+      name
+      business_unit_id
+    }
+  }
+`
+
+export const ADMIN_DOCUMENT_TYPES = `
+  query AdminDocumentTypes {
+    document_types(order_by: { name: asc }) {
+      id
+      name
+      category {
+        name
+      }
+    }
+  }
+`
+
+export const ADMIN_SECURITY_SETTINGS = `
+  query AdminSecuritySettings {
+    security_settings(limit: 1) {
+      id
+      session_timeout_minutes
+      mfa_required
+      updated_at
+    }
+  }
+`
+
+export type AdminOrganizationResponse = {
+  organizations: Array<{ id: string; name: string; slug: string; created_at: string }>
+}
+
+export type AdminUsersResponse = {
+  profiles: Array<{
+    id: string
+    display_name: string
+    email: string
+    status: string
+    user_roles: Array<{ role: { id: string; name: string } | null }>
+  }>
+}
+
+export type AdminRolesResponse = {
+  roles: Array<{ id: string; name: string; is_system: boolean | number }>
+}
+
+export type AdminDepartmentsResponse = {
+  departments: Array<{ id: string; name: string; business_unit_id: string | null }>
+}
+
+export type AdminDocumentTypesResponse = {
+  document_types: Array<{ id: string; name: string; category: { name: string } | null }>
+}
+
+export type AdminSecuritySettingsResponse = {
+  security_settings: Array<{
+    id: string
+    session_timeout_minutes: number
+    mfa_required: boolean | number
+    updated_at: string
+  }>
+}
 
 export const DOCUMENT_CERTIFICATE = `
   query DocumentCertificate($documentId: uuid!) {

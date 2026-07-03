@@ -107,11 +107,15 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 - Append-only audit trail UI and reports
 
 **Done:** Worker certificate issuance on route completion, public verification endpoint with rate limiting, Hasura read permissions for audit/signature/certificate tables, audit trail panel in signing workspace, reports CSV export, public verify page, SHA-256 integrity hash on Worker audit inserts (DEC-014), auditor-scoped org-wide reads.  
-**Remaining:** Deploy Worker + Pages for v14, assign Auditor test user, live integrity_hash E2E after Worker deploy.
+**Remaining:** Optional Nhost JWT `auditor` allowed-role; Phase 9 administration or Phase 7 field-placement wizard.
 
-### Phase 9: Administration — `NOT_STARTED`
+### Phase 9: Administration — `IN_PROGRESS`
 
 - Users, roles, permissions, departments, templates, settings
+
+**Done:** Admin page reads real Hasura data — users with role assignments, roles, departments, document types, security settings (session timeout/MFA); org-configuration tables gated to `Organization Administrator`/`Super Administrator` via a Hasura row filter (`ADMIN_ORG_FILTER`, same "user" role + row-filter pattern as the auditor scope), not UI-only hiding; every user can read their own role assignment.
+**Also fixed:** `CURRENT_PROFILE` query (frontend) and the `e2e_sign_flow.py`/`e2e_wizard_upload.py` "load current profile" queries used an unfiltered `profiles(limit: 1)`, which returned an arbitrary org peer's row once the organization had more than one profile (surfaced by the Phase 8 Auditor test user). Now filtered by the signed-in user's id. Live E2E sign flow re-verified 15/15 after the fix.
+**Remaining:** Write operations (invite user, assign/revoke role, create department/document type) via Worker endpoints with an admin-role check; permissions matrix, retention rules, and email template admin views (currently placeholders).
 
 ### Phase 10: Testing and deployment — `NOT_STARTED`
 
@@ -158,4 +162,6 @@ Chosen rung: `REUSE` — extend existing React scaffold, Worker stub, workflow a
 
 ## Next Action
 
-Deploy Worker Phase 7 endpoints and apply Hasura metadata. Continue Phase 7 field-placement wizard or begin Phase 8 certificates.
+1. Deploy Pages (v15) so the live Admin page reflects Phase 9 reads.
+2. Scope and implement Phase 9 admin write endpoints (Worker + admin-role check) if the project owner wants in-app user/role/department management rather than SQL scripts.
+3. Phase 7 field-placement wizard, or begin Phase 10 (expanded automated test coverage, Playwright in CI, Worker deploy via CI).
